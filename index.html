@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>N7154N Power Settings</title>
+<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza, IO-470-K) across altitude and temperature.">
+<meta name="theme-color" content="#12161B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="N7154N Power">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png">
+<style>
+  :root{
+    --ink:#1C232B;
+    --ink-dim:#4C5763;
+    --bg:#EEF1F2;
+    --surface:#FFFFFF;
+    --surface-2:#E3E8EA;
+    --border:#CBD2D6;
+    --accent:#A8752B;
+    --accent-ink:#FFFFFF;
+    --good:#3F8259;
+    --good-bg:#E4EFE7;
+    --warn:#B54430;
+    --warn-bg:#F5E3DD;
+    --bezel:#12161B;
+    --bezel-2:#1C232B;
+    --bezel-digit:#F2A93C;
+    --bezel-digit-dim:#6B5426;
+    --bezel-label:#8A94A0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#E7EAEC;
+      --ink-dim:#9AA5B0;
+      --bg:#0F1319;
+      --surface:#171C23;
+      --surface-2:#1F2530;
+      --border:#2C333C;
+      --accent:#D9A54B;
+      --accent-ink:#1B140A;
+      --good:#5FAE7C;
+      --good-bg:#16261C;
+      --warn:#E68A66;
+      --warn-bg:#2B1B16;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#E7EAEC;
+    --ink-dim:#9AA5B0;
+    --bg:#0F1319;
+    --surface:#171C23;
+    --surface-2:#1F2530;
+    --border:#2C333C;
+    --accent:#D9A54B;
+    --accent-ink:#1B140A;
+    --good:#5FAE7C;
+    --good-bg:#16261C;
+    --warn:#E68A66;
+    --warn-bg:#2B1B16;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg);}
+  body{
+    color:var(--ink);
+    font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
+    margin:0;
+    padding:0 0 4rem;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-variant-numeric:tabular-nums;}
+  .mono{font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;}
+
+  .wrap{max-width:840px;margin:0 auto;padding:0 1.1rem;}
+
+  header.top{
+    background:linear-gradient(180deg,var(--surface),var(--bg));
+    border-bottom:1px solid var(--border);
+    padding:1.4rem 0 1.1rem;
+  }
+  .tail{
+    font-size:0.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:700;
+    margin:0 0 .2rem;
+  }
+  h1{
+    margin:0;
+    font-size:clamp(1.5rem,4.5vw,2.1rem);
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+    font-weight:750;
+  }
+  .subhead{
+    margin:.35rem 0 0;
+    color:var(--ink-dim);
+    font-size:.92rem;
+  }
+  .badges{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.85rem;}
+  .badge{
+    font-size:.72rem;
+    font-weight:600;
+    letter-spacing:.03em;
+    padding:.3rem .6rem;
+    border-radius:999px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--ink-dim);
+  }
+
+  section{padding:1.4rem 0;border-bottom:1px solid var(--border);}
+  section:last-of-type{border-bottom:none;}
+  .section-label{
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin:0 0 .8rem;
+  }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:1rem 1.1rem;
+  }
+
+  .field-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:.8rem;
+  }
+  label.field{display:flex;flex-direction:column;gap:.35rem;}
+  label.field span{font-size:.74rem;color:var(--ink-dim);font-weight:600;}
+  input[type=number]{
+    font:inherit;
+    font-size:1.05rem;
+    padding:.55rem .6rem;
+    border-radius:9px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--ink);
+    width:100%;
+  }
+  input[type=number]:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+  .derived-chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.9rem;}
+  .chip{
+    font-size:.82rem;
+    padding:.4rem .7rem;
+    border-radius:9px;
+    background:var(--surface-2);
+    color:var(--ink);
+    display:flex;
+    gap:.35rem;
+    align-items:baseline;
+  }
+  .chip b{font-weight:700;}
+  .chip small{color:var(--ink-dim);font-weight:500;}
+
+  .rpm-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem;}
+  .rpm-btn{
+    flex:1 1 auto;
+    min-width:64px;
+    text-align:center;
+    padding:.55rem .4rem;
+    border-radius:9px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink);
+    font-weight:600;
+    font-size:.88rem;
+    cursor:pointer;
+  }
+  .rpm-btn.active{
+    background:var(--accent);
+    color:var(--accent-ink);
+    border-color:var(--accent);
+  }
+  .rpm-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .power-slider-row{display:flex;align-items:center;gap:.9rem;margin-top:1rem;}
+  input[type=range]{flex:1;accent-color:var(--accent);}
+  .power-readout{
+    font-weight:800;
+    font-size:1.3rem;
+    min-width:4.2ch;
+    text-align:right;
+  }
+
+  .bezel{
+    margin-top:1.1rem;
+    background:radial-gradient(circle at 30% -10%,var(--bezel-2),var(--bezel) 70%);
+    border-radius:16px;
+    padding:1.1rem 1rem 1rem;
+    box-shadow:inset 0 0 0 1px #000, 0 6px 18px -8px rgba(0,0,0,.5);
+  }
+  .bezel-title{
+    color:var(--bezel-label);
+    font-size:.68rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    font-weight:700;
+    margin:0 0 .7rem;
+  }
+  .bezel-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+    gap:.9rem;
+  }
+  .bezel-item{display:flex;flex-direction:column;gap:.15rem;}
+  .bezel-item .lbl{
+    color:var(--bezel-label);
+    font-size:.68rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  .bezel-item .val{
+    color:var(--bezel-digit);
+    font-size:1.5rem;
+    font-weight:600;
+    text-shadow:0 0 14px rgba(242,169,60,.35);
+  }
+  .bezel-item .val.small{font-size:1.15rem;}
+  .bezel-item .unit{color:var(--bezel-digit-dim);font-size:.72rem;font-weight:600;margin-left:.15rem;}
+  .bezel-note{
+    margin:.9rem 0 0;
+    font-size:.78rem;
+    color:var(--bezel-label);
+  }
+  .bezel-note.warn{color:var(--warn);}
+
+  table{width:100%;border-collapse:collapse;font-size:.88rem;}
+  th,td{padding:.55rem .5rem;text-align:right;border-bottom:1px solid var(--border);}
+  th:first-child,td:first-child{text-align:left;}
+  thead th{
+    font-size:.68rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    font-weight:700;
+  }
+  tbody tr.current{background:var(--surface-2);}
+  tbody tr.unreachable td{color:var(--ink-dim);}
+  .table-scroll{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+  .table-scroll table{min-width:560px;}
+  .pill{
+    display:inline-block;
+    font-size:.68rem;
+    font-weight:700;
+    padding:.15rem .45rem;
+    border-radius:999px;
+  }
+  .pill.good{background:var(--good-bg);color:var(--good);}
+  .pill.warn{background:var(--warn-bg);color:var(--warn);}
+
+  details.calib{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:.9rem 1.1rem;
+  }
+  details.calib summary{
+    cursor:pointer;
+    font-weight:700;
+    font-size:.92rem;
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  details.calib summary::-webkit-details-marker{display:none;}
+  summary .chev{transition:transform .2s;color:var(--ink-dim);}
+  details[open] summary .chev{transform:rotate(90deg);}
+  .calib-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:.8rem;
+    margin-top:1rem;
+  }
+  .calib-grid label.field span{color:var(--ink-dim);}
+  .reset-row{margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap;}
+  button.ghost{
+    font:inherit;
+    font-size:.82rem;
+    font-weight:600;
+    padding:.5rem .8rem;
+    border-radius:9px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  button.ghost:hover{background:var(--surface-2);}
+
+  .disclaimer{
+    display:flex;
+    gap:.6rem;
+    padding:.85rem 1rem;
+    border-radius:12px;
+    background:var(--warn-bg);
+    border:1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+    font-size:.82rem;
+    line-height:1.45;
+    color:var(--ink);
+  }
+  .disclaimer b{color:var(--warn);}
+
+  footer{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:.76rem;
+    padding-top:1.2rem;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <p class="tail">N7154N &middot; Naperville Flying Club</p>
+    <h1>Power Setting Calculator</h1>
+    <p class="subhead">1968 Beechcraft E33 Bonanza &middot; Continental IO&#8209;470&#8209;K</p>
+    <div class="badges">
+      <span class="badge">225 BHP @ 2600 RPM</span>
+      <span class="badge">Normally aspirated</span>
+      <span class="badge">Fixed injection</span>
+      <span class="badge">100LL</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section id="conditions">
+    <p class="section-label">Conditions</p>
+    <div class="card">
+      <div class="field-grid">
+        <label class="field">
+          <span>Field elevation (ft)</span>
+          <input type="number" id="in-elev" value="0" step="10" inputmode="numeric">
+        </label>
+        <label class="field">
+          <span>Altimeter setting (inHg)</span>
+          <input type="number" id="in-altimeter" value="29.92" step="0.01" inputmode="decimal">
+        </label>
+        <label class="field">
+          <span>Outside air temp (&deg;C)</span>
+          <input type="number" id="in-oat" value="15" step="1" inputmode="numeric">
+        </label>
+      </div>
+      <div class="derived-chips">
+        <span class="chip"><b class="num" id="out-pa">&mdash;</b><small>ft pressure alt.</small></span>
+        <span class="chip"><b class="num" id="out-da">&mdash;</b><small>ft density alt.</small></span>
+        <span class="chip"><b class="num" id="out-isadev">&mdash;</b><small>ISA dev.</small></span>
+        <span class="chip"><b class="num" id="out-wotmp">&mdash;</b><small>in Hg avail. WOT</small></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="power">
+    <p class="section-label">Cruise RPM &amp; desired power</p>
+    <div class="card">
+      <div class="rpm-row" id="rpm-row" role="group" aria-label="Cruise RPM"></div>
+
+      <div class="power-slider-row">
+        <input type="range" id="in-power" min="40" max="100" step="1" value="65" aria-label="Desired percent power">
+        <span class="power-readout num"><span id="out-power-val">65</span>%</span>
+      </div>
+
+      <div class="bezel">
+        <p class="bezel-title">Recommended setting &mdash; <span id="bezel-rpm-label">2500</span> RPM</p>
+        <div class="bezel-grid">
+          <div class="bezel-item">
+            <span class="lbl">RPM</span>
+            <span class="val mono" id="hero-rpm">&mdash;</span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Manifold Pressure</span>
+            <span class="val mono" id="hero-mp">&mdash;<span class="unit">inHg</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Fuel Flow (rich)</span>
+            <span class="val mono small" id="hero-ff-rich">&mdash;<span class="unit">GPH</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Fuel Flow (lean)</span>
+            <span class="val mono small" id="hero-ff-lean">&mdash;<span class="unit">GPH</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Indicated Airspeed</span>
+            <span class="val mono small" id="hero-ias">&mdash;<span class="unit">KIAS</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">True Airspeed</span>
+            <span class="val mono small" id="hero-tas">&mdash;<span class="unit">KTAS</span></span>
+          </div>
+        </div>
+        <p class="bezel-note" id="hero-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="table">
+    <p class="section-label">Full power range at <span id="table-rpm-label">2500</span> RPM</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>% Pwr</th>
+            <th>MP (inHg)</th>
+            <th>FF rich</th>
+            <th>FF lean</th>
+            <th>KIAS</th>
+            <th>KTAS</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="calibration">
+    <p class="section-label">Aircraft profile</p>
+    <details class="calib" id="calib-details">
+      <summary>Engine &amp; airframe constants <span class="chev">&#9656;</span></summary>
+      <div class="calib-grid">
+        <label class="field"><span>Rated BHP</span><input type="number" id="c-bhp" value="225" step="1"></label>
+        <label class="field"><span>Rated RPM</span><input type="number" id="c-rpm" value="2600" step="10"></label>
+        <label class="field"><span>WOT MP @ SL, std day (inHg)</span><input type="number" id="c-mp" value="28.5" step="0.1"></label>
+        <label class="field"><span>BSFC &ndash; rich / best power (lb/BHP/hr)</span><input type="number" id="c-bsfc-rich" value="0.45" step="0.01"></label>
+        <label class="field"><span>BSFC &ndash; lean / best economy (lb/BHP/hr)</span><input type="number" id="c-bsfc-lean" value="0.40" step="0.01"></label>
+        <label class="field"><span>Avgas weight (lb/gal)</span><input type="number" id="c-fuelwt" value="6.0" step="0.1"></label>
+        <label class="field"><span>Reference KIAS</span><input type="number" id="c-ias-ref" value="131" step="1"></label>
+        <label class="field"><span>&hellip; at % power</span><input type="number" id="c-pct-ref" value="75" step="1"></label>
+      </div>
+      <div class="reset-row">
+        <button class="ghost" id="btn-save">Save profile</button>
+        <button class="ghost" id="btn-reset">Reset to defaults</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="notes">
+    <div class="disclaimer">
+      <span>&#9888;&#65039;</span>
+      <span><b>Reference estimates, not certified POH data.</b> RPM/MP/fuel-flow/airspeed figures are computed from published Continental IO&#8209;470&#8209;K engine characteristics using standard-atmosphere and constant-speed cruise approximations &mdash; they are not transcribed from N7154N&rsquo;s current Pilot&rsquo;s Operating Handbook. Open <b>Aircraft profile</b> above and enter the exact numbers from N7154N&rsquo;s POH performance charts to calibrate this tool, and always cross-check against the current POH, weight &amp; balance, and engine monitor before using any setting in flight.</span>
+    </div>
+  </section>
+
+  <footer>Built for N7154N &middot; values save to this device only &middot; works offline once installed</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var DEFAULTS = {
+    bhp:225, rpm:2600, mp:28.5,
+    bsfcRich:0.45, bsfcLean:0.40,
+    fuelWt:6.0, iasRef:131, pctRef:75
+  };
+  var RPM_OPTIONS = [2200,2300,2400,2500,2600];
+  var TABLE_ROWS = [45,50,55,60,65,70,75,85,100];
+
+  var state = {
+    cfg: loadCfg(),
+    rpm: 2500,
+    pct: 65
+  };
+
+  function loadCfg(){
+    try{
+      var raw = localStorage.getItem('n7154n-cfg');
+      if(raw) return Object.assign({}, DEFAULTS, JSON.parse(raw));
+    }catch(e){}
+    return Object.assign({}, DEFAULTS);
+  }
+  function saveCfg(){
+    try{ localStorage.setItem('n7154n-cfg', JSON.stringify(state.cfg)); }catch(e){}
+  }
+
+  function isaTempC(paFt){ return 15 - 1.98*(paFt/1000); }
+  function stdPressureInHg(paFt){
+    return 29.9213 * Math.pow(1 - 6.8756e-6*paFt, 5.2561);
+  }
+  function pressureAltitude(elevFt, altimeter){
+    return elevFt + (29.92 - altimeter)*1000;
+  }
+  function densityAltitude(paFt, oatC){
+    return paFt + 120*(oatC - isaTempC(paFt));
+  }
+  function densityRatio(daFt){
+    var t = Math.max(1 - 6.8756e-6*daFt, 0.0001);
+    return Math.pow(t, 4.2561);
+  }
+  function inductionLoss(cfg){ return 29.92 - cfg.mp; }
+  function wotMP(paFt, cfg){ return stdPressureInHg(paFt) - inductionLoss(cfg); }
+
+  function pctFromMP(mp, rpm, paFt, oatC, cfg){
+    var tStd = isaTempC(paFt) + 273.15;
+    var tAct = oatC + 273.15;
+    return 100 * (rpm/cfg.rpm) * (mp/cfg.mp) * (tStd/tAct);
+  }
+  function mpFromPct(pct, rpm, paFt, oatC, cfg){
+    var tStd = isaTempC(paFt) + 273.15;
+    var tAct = oatC + 273.15;
+    return (pct/100) * cfg.mp * (cfg.rpm/rpm) * (tAct/tStd);
+  }
+  function fuelGPH(pct, bsfc, cfg){
+    var bhp = (pct/100) * cfg.bhp;
+    return (bhp*bsfc) / cfg.fuelWt;
+  }
+  function iasFromPct(pct, cfg){
+    return cfg.iasRef * Math.cbrt(pct/cfg.pctRef);
+  }
+  function tasFromIas(ias, daFt){
+    return ias / Math.sqrt(densityRatio(daFt));
+  }
+
+  function fmt(n, d){
+    if(!isFinite(n)) return '&mdash;';
+    return n.toFixed(d===undefined?0:d);
+  }
+
+  var els = {};
+  ['in-elev','in-altimeter','in-oat','out-pa','out-da','out-isadev','out-wotmp',
+   'in-power','out-power-val','bezel-rpm-label','table-rpm-label',
+   'hero-rpm','hero-mp','hero-ff-rich','hero-ff-lean','hero-ias','hero-tas','hero-note',
+   'table-body','rpm-row',
+   'c-bhp','c-rpm','c-mp','c-bsfc-rich','c-bsfc-lean','c-fuelwt','c-ias-ref','c-pct-ref',
+   'btn-save','btn-reset'
+  ].forEach(function(id){ els[id] = document.getElementById(id); });
+
+  function buildRpmButtons(){
+    els['rpm-row'].innerHTML = '';
+    RPM_OPTIONS.forEach(function(r){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rpm-btn' + (r===state.rpm ? ' active' : '');
+      b.textContent = r;
+      b.setAttribute('aria-pressed', r===state.rpm ? 'true':'false');
+      b.addEventListener('click', function(){
+        state.rpm = r;
+        buildRpmButtons();
+        recompute();
+      });
+      els['rpm-row'].appendChild(b);
+    });
+  }
+
+  function readConditions(){
+    var elev = parseFloat(els['in-elev'].value) || 0;
+    var altimeter = parseFloat(els['in-altimeter'].value);
+    if(!isFinite(altimeter)) altimeter = 29.92;
+    var oat = parseFloat(els['in-oat'].value);
+    if(!isFinite(oat)) oat = 15;
+    var pa = pressureAltitude(elev, altimeter);
+    var da = densityAltitude(pa, oat);
+    var isaDev = oat - isaTempC(pa);
+    return {elev:elev, altimeter:altimeter, oat:oat, pa:pa, da:da, isaDev:isaDev};
+  }
+
+  function recompute(){
+    var cfg = state.cfg;
+    var cond = readConditions();
+    var wot = wotMP(cond.pa, cfg);
+
+    els['out-pa'].textContent = fmt(cond.pa,0);
+    els['out-da'].textContent = fmt(cond.da,0);
+    els['out-isadev'].textContent = (cond.isaDev>=0?'+':'') + fmt(cond.isaDev,1) + '°C';
+    els['out-wotmp'].textContent = fmt(wot,1);
+
+    els['out-power-val'].textContent = state.pct;
+    els['bezel-rpm-label'].textContent = state.rpm;
+    els['table-rpm-label'].textContent = state.rpm;
+
+    var maxPct = pctFromMP(wot, state.rpm, cond.pa, cond.oat, cfg);
+    var targetPct = state.pct;
+    var achievable = targetPct <= maxPct + 0.05;
+    var usePct = achievable ? targetPct : maxPct;
+    var mp = mpFromPct(usePct, state.rpm, cond.pa, cond.oat, cfg);
+    mp = Math.min(mp, wot);
+
+    var ffRich = fuelGPH(usePct, cfg.bsfcRich, cfg);
+    var ffLean = fuelGPH(usePct, cfg.bsfcLean, cfg);
+    var ias = iasFromPct(usePct, cfg);
+    var tas = tasFromIas(ias, cond.da);
+
+    els['hero-rpm'].innerHTML = state.rpm;
+    els['hero-mp'].innerHTML = fmt(mp,1) + '<span class="unit">inHg</span>';
+    els['hero-ff-rich'].innerHTML = fmt(ffRich,1) + '<span class="unit">GPH</span>';
+    els['hero-ff-lean'].innerHTML = fmt(ffLean,1) + '<span class="unit">GPH</span>';
+    els['hero-ias'].innerHTML = fmt(ias,0) + '<span class="unit">KIAS</span>';
+    els['hero-tas'].innerHTML = fmt(tas,0) + '<span class="unit">KTAS</span>';
+
+    var noteEl = els['hero-note'];
+    if(!achievable){
+      noteEl.textContent = targetPct + '% power is not achievable at ' + state.rpm + ' RPM at this altitude — showing max available, ' + fmt(maxPct,0) + '% (full throttle).';
+      noteEl.classList.add('warn');
+    } else {
+      noteEl.textContent = 'Full throttle at this altitude/RPM would give approximately ' + fmt(maxPct,0) + '% power.';
+      noteEl.classList.remove('warn');
+    }
+
+    buildTable(cond, cfg);
+  }
+
+  function buildTable(cond, cfg){
+    var wot = wotMP(cond.pa, cfg);
+    var maxPct = pctFromMP(wot, state.rpm, cond.pa, cond.oat, cfg);
+    var rows = TABLE_ROWS.map(function(p){ return p; });
+    if(rows.indexOf(state.pct) === -1){
+      rows.push(state.pct);
+      rows.sort(function(a,b){return a-b;});
+    }
+    var html = '';
+    rows.forEach(function(p){
+      var reachable = p <= maxPct + 0.05;
+      var shownPct = reachable ? p : maxPct;
+      var mp = Math.min(mpFromPct(shownPct, state.rpm, cond.pa, cond.oat, cfg), wot);
+      var ffr = fuelGPH(shownPct, cfg.bsfcRich, cfg);
+      var ffl = fuelGPH(shownPct, cfg.bsfcLean, cfg);
+      var ias = iasFromPct(shownPct, cfg);
+      var tas = tasFromIas(ias, cond.da);
+      var cls = (p===state.pct ? 'current' : '') + (reachable ? '' : ' unreachable');
+      var label = reachable
+        ? p
+        : p + ' <span class="pill warn">max ' + fmt(maxPct,0) + '%</span>';
+      html += '<tr class="'+cls+'">' +
+        '<td>'+label+'</td>' +
+        '<td class="num">'+fmt(mp,1)+'</td>' +
+        '<td class="num">'+fmt(ffr,1)+'</td>' +
+        '<td class="num">'+fmt(ffl,1)+'</td>' +
+        '<td class="num">'+fmt(ias,0)+'</td>' +
+        '<td class="num">'+fmt(tas,0)+'</td>' +
+        '</tr>';
+    });
+    els['table-body'].innerHTML = html;
+  }
+
+  function fillCalibFields(){
+    els['c-bhp'].value = state.cfg.bhp;
+    els['c-rpm'].value = state.cfg.rpm;
+    els['c-mp'].value = state.cfg.mp;
+    els['c-bsfc-rich'].value = state.cfg.bsfcRich;
+    els['c-bsfc-lean'].value = state.cfg.bsfcLean;
+    els['c-fuelwt'].value = state.cfg.fuelWt;
+    els['c-ias-ref'].value = state.cfg.iasRef;
+    els['c-pct-ref'].value = state.cfg.pctRef;
+  }
+
+  function readCalibFields(){
+    state.cfg = {
+      bhp: parseFloat(els['c-bhp'].value) || DEFAULTS.bhp,
+      rpm: parseFloat(els['c-rpm'].value) || DEFAULTS.rpm,
+      mp: parseFloat(els['c-mp'].value) || DEFAULTS.mp,
+      bsfcRich: parseFloat(els['c-bsfc-rich'].value) || DEFAULTS.bsfcRich,
+      bsfcLean: parseFloat(els['c-bsfc-lean'].value) || DEFAULTS.bsfcLean,
+      fuelWt: parseFloat(els['c-fuelwt'].value) || DEFAULTS.fuelWt,
+      iasRef: parseFloat(els['c-ias-ref'].value) || DEFAULTS.iasRef,
+      pctRef: parseFloat(els['c-pct-ref'].value) || DEFAULTS.pctRef
+    };
+    saveCfg();
+    recompute();
+  }
+
+  els['in-elev'].addEventListener('input', recompute);
+  els['in-altimeter'].addEventListener('input', recompute);
+  els['in-oat'].addEventListener('input', recompute);
+  els['in-power'].addEventListener('input', function(){
+    state.pct = parseInt(els['in-power'].value, 10);
+    recompute();
+  });
+  els['btn-save'].addEventListener('click', readCalibFields);
+  els['btn-reset'].addEventListener('click', function(){
+    state.cfg = Object.assign({}, DEFAULTS);
+    saveCfg();
+    fillCalibFields();
+    recompute();
+  });
+
+  buildRpmButtons();
+  fillCalibFields();
+  recompute();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
