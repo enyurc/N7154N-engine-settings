@@ -534,7 +534,9 @@
   var state = { pct: 65 };
 
   function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
-  function isaTempC(paFt){ return 15 - 1.98*(paFt/1000); }
+  // Matches the POH's own "standard day" column exactly (17°C SL, -2.0°C/1000ft),
+  // not literal ISA — the printed OAT already carries the chart's ram-rise convention.
+  function isaTempC(paFt){ return 17 - 2.0*(paFt/1000); }
   function pressureAltitude(elevFt, altimeter){ return elevFt + (29.92 - altimeter)*1000; }
   function densityRatio(daFt){
     var t = Math.max(1 - 6.8756e-6*daFt, 0.0001);
