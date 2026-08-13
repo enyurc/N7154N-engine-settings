@@ -459,7 +459,6 @@
               <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
               <g class="dial-ticks"></g>
               <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
-              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
             </svg>
             <div class="dial-readout">
               <span class="dial-value num">2450</span>
@@ -489,7 +488,6 @@
               <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
               <g class="dial-ticks"></g>
               <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
-              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
             </svg>
             <div class="dial-readout">
               <span class="dial-value num">65</span>
@@ -756,6 +754,31 @@
     };
   }
 
+  // Highest % power at this RPM that stays at or under the recommended MP ceiling.
+  // mp is exactly affine in pct at fixed rpm, so two samples pin down the line.
+  function solvePctForLimit(rpm, cond){
+    var ceiling = ceilingMP(rpm);
+    var mpLo = computeCustom(rpm, 40, cond).mp;
+    var mpHi = computeCustom(rpm, 80, cond).mp;
+    var pct = 40 + (ceiling-mpLo) * (80-40) / (mpHi-mpLo);
+    return clamp(Math.round(pct), 40, 80);
+  }
+
+  // Lowest RPM that brings this % power back at or under the recommended MP
+  // ceiling (raising RPM both lowers required MP and raises the ceiling itself).
+  // Binary search since both mp(rpm) and ceiling(rpm) move with rpm.
+  function solveRpmForLimit(pct, cond){
+    function excess(rpm){ return computeCustom(rpm, pct, cond).mp - ceilingMP(rpm); }
+    var lo = 1800, hi = 2450;
+    if(excess(hi) > 0) return hi;
+    if(excess(lo) <= 0) return lo;
+    for(var i=0; i<24; i++){
+      var mid = (lo+hi)/2;
+      if(excess(mid) > 0) lo = mid; else hi = mid;
+    }
+    return clamp(Math.round(hi/10)*10, 1800, 2450);
+  }
+
   // Matches the POH's own "standard day" column exactly (17°C SL, -2.0°C/1000ft),
   // not literal ISA — the printed OAT already carries the chart's ram-rise convention.
   function isaTempC(paFt){ return 17 - 2.0*(paFt/1000); }
@@ -991,8 +1014,27 @@
   populateAltitude();
   oatDial = setupDial('oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, recompute);
   altimeterDial = setupDial('altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, recompute);
-  rpmDial = setupDial('rpm', {min:1800,max:2450,step:10,decimals:0,tickStep:50,value:2450}, recompute);
-  pctDial = setupDial('pct', {min:40,max:80,step:1,decimals:0,tickStep:10,value:65}, recompute);
+  function enforceLimits(changed){
+    var cond = readConditions();
+    var rpm = rpmDial.get(), pct = pctDial.get();
+    var mp = computeCustom(rpm, pct, cond).mp;
+    if(mp > ceilingMP(rpm) + 0.05){
+      if(changed === 'rpm'){
+        pctDial.set(solvePctForLimit(rpm, cond), true);
+      } else {
+        rpmDial.set(solveRpmForLimit(pct, cond), true);
+      }
+    }
+  }
+
+  rpmDial = setupDial('rpm', {min:1800,max:2450,step:10,decimals:0,tickStep:50,value:2450}, function(){
+    enforceLimits('rpm');
+    recompute();
+  });
+  pctDial = setupDial('pct', {min:40,max:80,step:1,decimals:0,tickStep:10,value:65}, function(){
+    enforceLimits('pct');
+    recompute();
+  });
 
   document.querySelectorAll('.preset-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
