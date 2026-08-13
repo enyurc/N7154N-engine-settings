@@ -227,26 +227,21 @@
   .chip.warn{background:var(--warn-bg);color:var(--warn);}
   .chip.warn b, .chip.warn small{color:var(--warn);}
 
-  .pct-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem;}
-  .pct-btn{
-    flex:1 1 auto;
-    min-width:96px;
-    text-align:center;
-    padding:.7rem .5rem .6rem;
-    border-radius:12px;
-    border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--ink);
-    cursor:pointer;
+  .power-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1.3rem 1rem;
   }
-  .pct-btn .pct-num{display:block;font-weight:800;font-size:1.3rem;}
-  .pct-btn .pct-sub{display:block;font-size:.7rem;color:var(--ink-dim);margin-top:.1rem;}
-  .pct-btn.active{
-    background:var(--accent);
-    border-color:var(--accent);
+  .pill{
+    display:inline-block;
+    font-size:.68rem;
+    font-weight:700;
+    padding:.15rem .5rem;
+    border-radius:999px;
+    letter-spacing:.02em;
   }
-  .pct-btn.active .pct-num, .pct-btn.active .pct-sub{color:var(--accent-ink);}
-  .pct-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .pill.good{background:var(--good-bg);color:var(--good);}
+  .pill.warn{background:var(--warn-bg);color:var(--warn);}
 
   .bezel{
     margin-top:1.1rem;
@@ -435,10 +430,54 @@
   <section id="power">
     <p class="section-label">Cruise power setting</p>
     <div class="card">
-      <div class="pct-row" id="pct-row" role="group" aria-label="Percent power"></div>
+      <div class="power-grid">
+
+        <div class="cond-cell">
+          <span class="dial-caption">RPM</span>
+          <div class="gauge dial" id="dial-rpm" tabindex="0" role="slider"
+               aria-label="Engine speed" aria-valuemin="1800" aria-valuemax="2450" aria-valuenow="2450">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">2450</span>
+              <span class="dial-unit">RPM</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="rpm" data-dir="-1" aria-label="Decrease RPM">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="rpm" data-dir="1" aria-label="Increase RPM">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell">
+          <span class="dial-caption">% Power</span>
+          <div class="gauge dial" id="dial-pct" tabindex="0" role="slider"
+               aria-label="Desired percent power" aria-valuemin="40" aria-valuemax="80" aria-valuenow="65">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">65</span>
+              <span class="dial-unit">% PWR</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="pct" data-dir="-1" aria-label="Decrease percent power">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="pct" data-dir="1" aria-label="Increase percent power">+</button>
+          </div>
+        </div>
+
+      </div>
 
       <div class="bezel">
-        <p class="bezel-title">Setting for <span id="bezel-pct-label">65</span>% power</p>
+        <p class="bezel-title">Computed setting <span class="pill" id="bezel-pill"></span></p>
         <div class="bezel-grid">
           <div class="bezel-item">
             <span class="lbl">RPM</span>
@@ -470,7 +509,7 @@
   </section>
 
   <section id="table">
-    <p class="section-label">All three POH settings at these conditions</p>
+    <p class="section-label">Certified POH settings at these conditions</p>
     <div class="table-scroll">
       <table>
         <thead>
@@ -497,12 +536,22 @@
       Handbook, Section V Performance, pages 5&#8209;21 through 5&#8209;23 (August 1982 revision), at 55%,
       65%, and 75% maximum continuous power, 2950 lb average cruise weight. The tables were transcribed from
       a scanned copy; spot&#8209;check the figures below against your own copy if anything looks off.</p>
+      <p><b>Any other RPM or % power</b> you dial in above is <b>estimated</b>, not tabulated: the app fits a
+      manifold-pressure&ndash;vs&ndash;power line through the certified points at each RPM (using both 65%
+      and 75% at 2450 RPM to get a real slope, and scaling that slope proportionally for other RPMs) and
+      solves it for your requested % power. It lands exactly on the certified value whenever RPM and % power
+      match a tabulated combination, and gets less certain the further you stray from 2300/2450 RPM and
+      55&ndash;75% power.</p>
+      <p><b>RPM is limited to 1800&ndash;2450</b> and manifold pressure is checked against the recommended
+      limits in the <b>Manifold Pressure vs RPM</b> chart, Section V pg 5&#8209;26 (August 1982): a diagonal
+      ceiling from about 21.4 inHg at 1800 RPM up to 24.0 inHg at 2450 RPM, below which cruise settings
+      shouldn't run. The app warns when your combination would exceed it.</p>
       <p><b>Indicated airspeed</b> is not tabulated in the POH chart &mdash; it's derived from the tabulated
       TAS using the standard density-altitude correction (KIAS &asymp; KTAS &times; &radic;&sigma;), which
       ignores position error and is only an estimate.</p>
-      <p>The chart covers <b>sea level&ndash;16,000 ft pressure altitude</b> and <b>ISA &minus;20&deg;C to
-      ISA +20&deg;C</b>. Conditions outside that range are clamped to the nearest edge of the chart, and the
-      app will say so.</p>
+      <p>The altitude/temperature grid covers <b>sea level&ndash;16,000 ft pressure altitude</b> and
+      <b>ISA &minus;20&deg;C to ISA +20&deg;C</b>. Conditions outside that range are clamped to the nearest
+      edge of the chart, and the app will say so.</p>
     </details>
   </section>
 
@@ -633,9 +682,51 @@
   };
 
   var PCTS = [55,65,75];
-  var state = { pct: 65 };
 
   function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // Recommended-limits boundary, POH Section V pg 5-26 "Manifold Pressure vs RPM":
+  // a diagonal ceiling from 21.4 inHg @ 1800 RPM up to 24.0 inHg @ 2450 RPM.
+  function ceilingMP(rpm){
+    var loRpm=1800, loMp=21.4, hiRpm=2450, hiMp=24.0;
+    var t = clamp((rpm-loRpm)/(hiRpm-loRpm), 0, 1);
+    return loMp + t*(hiMp-loMp);
+  }
+
+  function interpTriple(v55, v65, v75, p){
+    if(p <= 65){ var t = (p-55)/(65-55); return v55 + t*(v65-v55); }
+    var t2 = (p-65)/(75-65);
+    return v65 + t2*(v75-v65);
+  }
+
+  // MP for an arbitrary (RPM, %power): locally calibrated against the certified
+  // 55%@2300 / 65%,75%@2450 points. Exact at those points; a reasoned estimate
+  // elsewhere, with the local %power-per-inHg slope at 2450 (from the real 65/75
+  // gap) scaled proportionally to RPM for other engine speeds.
+  function computeCustom(rpm, pct, cond){
+    var r55 = lookup(55, cond.pa, cond.isaDev);
+    var r65 = lookup(65, cond.pa, cond.isaDev);
+    var r75 = lookup(75, cond.pa, cond.isaDev);
+
+    var slope2450 = (75-65)/(r75.mp-r65.mp);
+    var slope2300 = slope2450 * (2300/2450);
+    var t = (rpm-2300)/(2450-2300);
+    var mp0At2450 = r65.mp + (70-65)/slope2450;
+    var p0 = 55 + t*(70-55);
+    var mp0 = r55.mp + t*(mp0At2450-r55.mp);
+    var slope = slope2300 + t*(slope2450-slope2300);
+    var mp = mp0 + (pct-p0)/slope;
+
+    return {
+      mp: mp,
+      ffGph: interpTriple(r55.ffGph, r65.ffGph, r75.ffGph, pct),
+      ffPsi: interpTriple(r55.ffPsi, r65.ffPsi, r75.ffPsi, pct),
+      tasKt: interpTriple(r55.tasKt, r65.tasKt, r75.tasKt, pct),
+      tasMph: interpTriple(r55.tasMph, r65.tasMph, r75.tasMph, pct),
+      exact: (rpm===2300 && pct===55) || (rpm===2450 && (pct===65 || pct===75)),
+      clamped: r55.clamped || r65.clamped || r75.clamped
+    };
+  }
 
   // Matches the POH's own "standard day" column exactly (17°C SL, -2.0°C/1000ft),
   // not literal ISA — the printed OAT already carries the chart's ram-rise convention.
@@ -788,27 +879,12 @@
   }
 
   var els = {};
-  ['chips','pct-row','bezel-pct-label',
+  ['chips', 'bezel-pill',
    'hero-rpm','hero-mp','hero-ff','hero-ff-psi','hero-tas','hero-tas-mph','hero-ias','hero-note',
    'table-body'
   ].forEach(function(id){ els[id] = document.getElementById(id); });
 
-  function buildPctButtons(){
-    els['pct-row'].innerHTML = '';
-    PCTS.forEach(function(p){
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pct-btn' + (p===state.pct ? ' active' : '');
-      b.innerHTML = '<span class="pct-num">'+p+'%</span><span class="pct-sub">'+DATA[p].rpm+' RPM</span>';
-      b.setAttribute('aria-pressed', p===state.pct ? 'true':'false');
-      b.addEventListener('click', function(){
-        state.pct = p;
-        buildPctButtons();
-        recompute();
-      });
-      els['pct-row'].appendChild(b);
-    });
-  }
+  var rpmDial, pctDial;
 
   function readConditions(){
     var altitude = parseFloat(document.getElementById('in-altitude').value) || 6000;
@@ -831,29 +907,44 @@
       '<span class="chip"><b class="num">'+(cond.isaDev>=0?'+':'')+fmt(cond.isaDev,1)+'&deg;C</b><small>ISA deviation</small></span>' +
       (outOfRange ? '<span class="chip warn"><b>&#9888;</b><small>outside chart range &mdash; clamped to nearest edge</small></span>' : '');
 
-    els['bezel-pct-label'].textContent = state.pct;
+    var rpm = rpmDial.get();
+    var pct = pctDial.get();
+    var res = computeCustom(rpm, pct, cond);
+    var ceiling = ceilingMP(rpm);
+    var exceeds = res.mp > ceiling + 0.05;
+    var ias = res.tasKt * Math.sqrt(densityRatio(cond.da));
 
-    var r = lookup(state.pct, cond.pa, cond.isaDev);
-    var ias = r.tasKt * Math.sqrt(densityRatio(cond.da));
-
-    els['hero-rpm'].innerHTML = r.rpm;
-    els['hero-mp'].innerHTML = fmt(r.mp,1) + '<span class="unit">inHg</span>';
-    els['hero-ff'].innerHTML = fmt(r.ffGph,1) + '<span class="unit">GPH</span>';
-    els['hero-ff-psi'].textContent = fmt(r.ffPsi,1) + ' PSI';
-    els['hero-tas'].innerHTML = fmt(r.tasKt,0) + '<span class="unit">KTAS</span>';
-    els['hero-tas-mph'].textContent = fmt(r.tasMph,0) + ' MPH';
+    els['hero-rpm'].innerHTML = rpm;
+    els['hero-mp'].innerHTML = fmt(res.mp,1) + '<span class="unit">inHg</span>';
+    els['hero-ff'].innerHTML = fmt(res.ffGph,1) + '<span class="unit">GPH</span>';
+    els['hero-ff-psi'].textContent = fmt(res.ffPsi,1) + ' PSI';
+    els['hero-tas'].innerHTML = fmt(res.tasKt,0) + '<span class="unit">KTAS</span>';
+    els['hero-tas-mph'].textContent = fmt(res.tasMph,0) + ' MPH';
     els['hero-ias'].innerHTML = fmt(ias,0) + '<span class="unit">KIAS</span>';
 
-    els['hero-note'].textContent = r.clamped
-      ? 'Conditions are outside the POH chart (SL–16,000 ft, ISA ±20°C) — values shown are clamped to the nearest edge of the data.'
-      : 'Interpolated from the POH Section V cruise power tables for these exact conditions.';
-    els['hero-note'].classList.toggle('warn', r.clamped);
+    els['bezel-pill'].textContent = res.exact ? 'certified' : 'estimated';
+    els['bezel-pill'].className = 'pill ' + (res.exact ? 'good' : 'warn');
+
+    var note;
+    if(exceeds){
+      note = 'Exceeds the recommended manifold pressure for cruise at ' + rpm + ' RPM (chart max ' +
+        fmt(ceiling,1) + ' inHg, Section V pg 5-26) — reduce % power or increase RPM.';
+    } else if(res.exact){
+      note = 'This exact combination is a certified POH cruise power setting.';
+    } else {
+      note = 'Estimated by interpolating between the certified 55/65/75% settings — not itself a tabulated POH value.';
+    }
+    if(res.clamped){
+      note += ' Conditions are outside the altitude/temperature chart range, clamped to the nearest edge.';
+    }
+    els['hero-note'].textContent = note;
+    els['hero-note'].classList.toggle('warn', exceeds);
 
     var rows = '';
     PCTS.forEach(function(p){
       var rr = lookup(p, cond.pa, cond.isaDev);
       var iias = rr.tasKt * Math.sqrt(densityRatio(cond.da));
-      var cls = p===state.pct ? 'current' : '';
+      var cls = (p===pct && rr.rpm===rpm) ? 'current' : '';
       rows += '<tr class="'+cls+'">' +
         '<td>'+p+'%</td>' +
         '<td class="num">'+rr.rpm+'</td>' +
@@ -866,10 +957,11 @@
     els['table-body'].innerHTML = rows;
   }
 
-  buildPctButtons();
   populateAltitude();
   oatDial = setupDial('oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, recompute);
   altimeterDial = setupDial('altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, recompute);
+  rpmDial = setupDial('rpm', {min:1800,max:2450,step:10,decimals:0,tickStep:50,value:2450}, recompute);
+  pctDial = setupDial('pct', {min:40,max:80,step:1,decimals:0,tickStep:10,value:65}, recompute);
   recompute();
 })();
 </script>
