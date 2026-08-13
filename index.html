@@ -130,6 +130,11 @@
     border:1px solid var(--border);
     border-radius:14px;
     padding:1rem 1.1rem;
+    transition:background-color .15s, border-color .15s;
+  }
+  .card.range-alert{
+    background:var(--warn-bg);
+    border-color:color-mix(in srgb, var(--warn) 35%, transparent);
   }
 
   /* ---- Conditions: altitude / temp / altimeter gauges ---- */
@@ -385,7 +390,7 @@
 
   <section id="conditions">
     <p class="section-label">Conditions</p>
-    <div class="card">
+    <div class="card" id="conditions-card">
       <div class="cond-grid">
 
         <div class="cond-cell cond-altitude">
@@ -766,7 +771,9 @@
     var mpHi = computeCustom(rpm, 75, cond).mp;
     if(mpHi === mpLo) return mpLo <= ceiling ? 75 : 40;
     var pct = 40 + (ceiling-mpLo) * (75-40) / (mpHi-mpLo);
-    return clamp(Math.round(pct/5)*5, 40, 75);
+    // Round DOWN to the step grid -- rounding to nearest can land just past
+    // the true crossing point and put the "corrected" value over the ceiling.
+    return clamp(Math.floor(pct/5)*5, 40, 75);
   }
 
   // Lowest RPM that brings this % power back at or under the recommended MP
@@ -781,7 +788,9 @@
       var mid = (lo+hi)/2;
       if(excess(mid) > 0) lo = mid; else hi = mid;
     }
-    return clamp(Math.round(hi/50)*50, 1800, 2450);
+    // Round UP to the step grid -- rounding to nearest can land just short of
+    // the true crossing point and leave the "corrected" value over the ceiling.
+    return clamp(Math.ceil(hi/50)*50, 1800, 2450);
   }
 
   // Matches the POH's own "standard day" column exactly (17°C SL, -2.0°C/1000ft),
@@ -1030,6 +1039,7 @@
   function recompute(){
     var cond = readConditions();
     var outOfRange = cond.pa < ALTS[0] || cond.pa > ALTS[ALTS.length-1] || Math.abs(cond.isaDev) > 20;
+    document.getElementById('conditions-card').classList.toggle('range-alert', outOfRange);
 
     els['chips'].innerHTML =
       '<span class="chip"><b class="num">'+fmt(cond.pa,0)+'</b><small>ft pressure alt.</small></span>' +
@@ -1096,15 +1106,32 @@
     snapAltitudeInto(altitudeBoundsFn());
     recompute();
   });
+  // Brings (rpm, pct) back within the pg 5-26 recommended-limits chart. Tries
+  // adjusting only the dial the user DIDN'T just move first (a single-dial
+  // fix is enough almost everywhere); if that alone still isn't sufficient --
+  // it can happen deep in the extrapolated low-RPM range -- it falls back to
+  // pulling the just-changed dial back too, converging on the nearest valid
+  // pair rather than leaving a resolvable violation on display. 2450 RPM @
+  // 40% power is comfortably within limits for every altitude/ISA condition,
+  // so this always has somewhere valid to land.
   function enforceLimits(changed){
     var cond = readConditions();
     var rpm = rpmDial.get(), pct = pctDial.get();
-    var mp = computeCustom(rpm, pct, cond).mp;
-    if(mp > ceilingMP(rpm) + 0.05){
-      if(changed === 'rpm'){
-        pctDial.set(solvePctForLimit(rpm, cond), true);
-      } else {
-        rpmDial.set(solveRpmForLimit(pct, cond), true);
+    if(computeCustom(rpm, pct, cond).mp <= ceilingMP(rpm) + 0.05) return;
+
+    if(changed === 'rpm'){
+      pct = solvePctForLimit(rpm, cond);
+      pctDial.set(pct, true);
+      if(computeCustom(rpm, pct, cond).mp > ceilingMP(rpm) + 0.05){
+        rpm = solveRpmForLimit(pct, cond);
+        rpmDial.set(rpm, true);
+      }
+    } else {
+      rpm = solveRpmForLimit(pct, cond);
+      rpmDial.set(rpm, true);
+      if(computeCustom(rpm, pct, cond).mp > ceilingMP(rpm) + 0.05){
+        pct = solvePctForLimit(rpm, cond);
+        pctDial.set(pct, true);
       }
     }
   }
@@ -1123,6 +1150,7 @@
       var p = parseInt(btn.getAttribute('data-pct'), 10);
       rpmDial.set(DATA[p].rpm, true);
       pctDial.set(p, true);
+      enforceLimits('pct');
       recompute();
     });
   });
