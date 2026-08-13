@@ -783,6 +783,18 @@
   // not literal ISA — the printed OAT already carries the chart's ram-rise convention.
   function isaTempC(paFt){ return 17 - 2.0*(paFt/1000); }
   function pressureAltitude(indicatedFt, altimeter){ return indicatedFt + (29.92 - altimeter)*1000; }
+
+  // f is affine (linear) in x over [xMin,xMax]; returns the sub-range of x where
+  // f(x) stays within [lo,hi], or null if no part of [xMin,xMax] satisfies it.
+  function linearBounds(f, lo, hi, xMin, xMax){
+    var f0 = f(xMin), f1 = f(xMax);
+    if(f0 === f1) return (f0 >= lo && f0 <= hi) ? [xMin, xMax] : null;
+    var t0 = (lo-f0)/(f1-f0), t1 = (hi-f0)/(f1-f0);
+    var tLo = Math.min(t0,t1), tHi = Math.max(t0,t1);
+    var xLo = clamp(xMin + tLo*(xMax-xMin), xMin, xMax);
+    var xHi = clamp(xMin + tHi*(xMax-xMin), xMin, xMax);
+    return xLo <= xHi ? [xLo, xHi] : null;
+  }
   function densityRatio(daFt){
     var t = Math.max(1 - 6.8756e-6*daFt, 0.0001);
     return Math.pow(t, 4.2561);
@@ -858,9 +870,17 @@
       root.setAttribute('aria-valuenow', value);
     }
     function setValue(v, silent){
-      var steps = Math.round((v-cfg.min)/cfg.step);
+      var lo = cfg.min, hi = cfg.max;
+      if(cfg.boundsFn){
+        var dyn = cfg.boundsFn();
+        if(dyn){ lo = Math.max(lo, dyn[0]); hi = Math.min(hi, dyn[1]); }
+      }
+      var vClamped = clamp(v, lo, hi);
+      var steps = Math.round((vClamped-cfg.min)/cfg.step);
       var snapped = cfg.min + steps*cfg.step;
-      snapped = clamp(Math.round(snapped/cfg.step)*cfg.step, cfg.min, cfg.max);
+      if(snapped > hi + 1e-9) snapped -= cfg.step;
+      if(snapped < lo - 1e-9) snapped += cfg.step;
+      snapped = clamp(snapped, cfg.min, cfg.max);
       value = snapped;
       render();
       if(!silent) onChange(value);
@@ -917,6 +937,50 @@
 
   var oatDial, altimeterDial;
 
+  function currentAltitude(){
+    return parseFloat(document.getElementById('in-altitude').value) || 6000;
+  }
+
+  // Keeps the three conditions dials from ever landing outside the POH
+  // altitude/ISA-deviation grid (SL-16,000 ft, ISA -20C to +20C), given
+  // whatever the OTHER two dials are currently set to.
+  function oatBoundsFn(){
+    var pa = pressureAltitude(currentAltitude(), altimeterDial.get());
+    var isaStd = isaTempC(pa);
+    return [isaStd-20, isaStd+20];
+  }
+
+  function altimeterBoundsFn(){
+    var altitude = currentAltitude();
+    var oat = oatDial.get();
+    function paOf(a){ return pressureAltitude(altitude, a); }
+    function devOf(a){ return oat - isaTempC(paOf(a)); }
+    var b1 = linearBounds(paOf, 0, 16000, 28, 31);
+    var b2 = linearBounds(devOf, -20, 20, 28, 31);
+    if(!b1 || !b2) return [28, 31];
+    return [Math.max(b1[0], b2[0]), Math.min(b1[1], b2[1])];
+  }
+
+  function altitudeBoundsFn(){
+    var altimeter = altimeterDial.get();
+    var oat = oatDial.get();
+    function paOf(alt){ return pressureAltitude(alt, altimeter); }
+    function devOf(alt){ return oat - isaTempC(paOf(alt)); }
+    var b1 = linearBounds(paOf, 0, 16000, 2000, 16000);
+    var b2 = linearBounds(devOf, -20, 20, 2000, 16000);
+    if(!b1 || !b2) return [2000, 16000];
+    return [Math.max(b1[0], b2[0]), Math.min(b1[1], b2[1])];
+  }
+
+  function updateAltitudeAvailability(){
+    var bounds = altitudeBoundsFn();
+    var sel = document.getElementById('in-altitude');
+    Array.prototype.forEach.call(sel.options, function(opt){
+      var v = parseFloat(opt.value);
+      opt.disabled = (v < bounds[0]-1 || v > bounds[1]+1);
+    });
+  }
+
   function populateAltitude(){
     var sel = document.getElementById('in-altitude');
     for(var a=2000; a<=16000; a+=500){
@@ -952,6 +1016,7 @@
   }
 
   function recompute(){
+    updateAltitudeAvailability();
     var cond = readConditions();
     var outOfRange = cond.pa < ALTS[0] || cond.pa > ALTS[ALTS.length-1] || Math.abs(cond.isaDev) > 20;
 
@@ -1012,8 +1077,8 @@
   }
 
   populateAltitude();
-  oatDial = setupDial('oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, recompute);
-  altimeterDial = setupDial('altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, recompute);
+  oatDial = setupDial('oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15,boundsFn:oatBoundsFn}, recompute);
+  altimeterDial = setupDial('altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92,boundsFn:altimeterBoundsFn}, recompute);
   function enforceLimits(changed){
     var cond = readConditions();
     var rpm = rpmDial.get(), pct = pctDial.get();
