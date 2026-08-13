@@ -174,8 +174,10 @@
   .dial:focus-visible{box-shadow:inset 0 0 0 1px #000, 0 6px 18px -8px rgba(0,0,0,.5), 0 0 0 3px var(--accent);}
   .dial svg{width:100%;height:100%;display:block;}
   .dial-tick{stroke:var(--bezel-label);stroke-width:1.4;}
+  .dial-alert-arc{fill:none;stroke:var(--warn);stroke-width:5;stroke-linecap:round;opacity:.8;}
   .dial-needle line{stroke:var(--bezel-digit);stroke-width:3.2;stroke-linecap:round;
     filter:drop-shadow(0 0 3px rgba(242,169,60,.55));}
+  .dial.alert .dial-needle line{stroke:var(--warn);filter:drop-shadow(0 0 3px rgba(0,0,0,.35));}
   .dial-hub{fill:var(--bezel-digit);}
   .dial-readout{
     position:absolute;inset:0;
@@ -189,6 +191,7 @@
     font-size:1.3rem;font-weight:600;
     text-shadow:0 0 14px rgba(242,169,60,.35);
   }
+  .dial.alert .dial-value{color:var(--warn);text-shadow:none;}
   .dial-unit{color:var(--bezel-digit-dim);font-size:.66rem;font-weight:600;margin-top:.1rem;}
 
   .select-face{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;}
@@ -488,7 +491,7 @@
         <div class="cond-cell">
           <span class="dial-caption">% Power</span>
           <div class="gauge dial" id="dial-pct" tabindex="0" role="slider"
-               aria-label="Desired percent power" aria-valuemin="40" aria-valuemax="75" aria-valuenow="65">
+               aria-label="Desired percent power" aria-valuemin="10" aria-valuemax="75" aria-valuenow="65">
             <svg viewBox="0 0 100 100">
               <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
               <g class="dial-ticks"></g>
@@ -567,12 +570,19 @@
       Handbook, Section V Performance, pages 5&#8209;21 through 5&#8209;23 (August 1982 revision), at 55%,
       65%, and 75% maximum continuous power, 2950 lb average cruise weight. The tables were transcribed from
       a scanned copy; spot&#8209;check the figures below against your own copy if anything looks off.</p>
-      <p><b>Any other RPM or % power</b> you dial in above is <b>estimated</b>, not tabulated: the app fits a
-      manifold-pressure&ndash;vs&ndash;power line through the certified points at each RPM (using both 65%
-      and 75% at 2450 RPM to get a real slope, and scaling that slope proportionally for other RPMs) and
-      solves it for your requested % power. It lands exactly on the certified value whenever RPM and % power
-      match a tabulated combination, and gets less certain the further you stray from 2300/2450 RPM and
-      55&ndash;75% power.</p>
+      <p><b>Any other RPM or % power</b> you dial in above is <b>estimated</b>, not tabulated: between 55% and
+      75% power, the app fits a manifold-pressure&ndash;vs&ndash;power line through the certified points at
+      each RPM (using both 65% and 75% at 2450 RPM to get a real slope, and scaling that slope proportionally
+      for other RPMs) and solves it for your requested % power. It lands exactly on the certified value
+      whenever RPM and % power match a tabulated combination, and gets less certain the further you stray
+      from 2300/2450 RPM.</p>
+      <p><b>Below 55% power</b> (shaded red on the % power dial, 10&ndash;40%) is below every certified table
+      entirely, so the cruise-range line above isn't a reasonable way to extrapolate &mdash; checked against
+      basic engine physics (%BHP roughly proportional to manifold pressure at a fixed RPM), continuing that
+      line down to 10% implied nearly 2.5&times; the requested power. Instead manifold pressure is scaled
+      proportionally between the certified 55% point and an assumed closed&#8209;throttle idle manifold
+      pressure (~10.5 inHg), which is exact at 55% and stays physically sane as % power falls toward zero,
+      but is a rougher estimate throughout &mdash; there's no published data down here to calibrate against.</p>
       <p><b>RPM is limited to 1800&ndash;2450</b> and manifold pressure is checked against the recommended
       limits in the <b>Manifold Pressure vs RPM</b> chart, Section V pg 5&#8209;26 (August 1982): a diagonal
       ceiling from about 21.4 inHg at 1800 RPM up to 24.0 inHg at 2450 RPM, below which cruise settings
@@ -713,6 +723,10 @@
   };
 
   var PCTS = [55,65,75];
+  var PCT_MIN = 10, PCT_MAX = 75;
+  // Approximate closed-throttle manifold pressure for this engine class, used
+  // only to shape the sub-55% estimate below -- not certified POH data.
+  var IDLE_MP = 10.5;
 
   function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
 
@@ -734,6 +748,14 @@
   // 55%@2300 / 65%,75%@2450 points. Exact at those points; a reasoned estimate
   // elsewhere, with the local %power-per-inHg slope at 2450 (from the real 65/75
   // gap) scaled proportionally to RPM for other engine speeds.
+  //
+  // Below 55% power (outside all three certified tables) that same cruise-range
+  // slope is not physically reasonable to extend -- checked against the basic
+  // %BHP-proportional-to-MP relation, the straight extrapolation implied a
+  // requested 10% power was actually delivering roughly 2.5x that. Instead,
+  // MP is scaled proportionally between the certified 55% point and an assumed
+  // closed-throttle idle MP, which is exact at the 55% boundary and approaches
+  // a physically sane floor as %power falls toward zero.
   function computeCustom(rpm, pct, cond){
     var r55 = lookup(55, cond.pa, cond.isaDev);
     var r65 = lookup(65, cond.pa, cond.isaDev);
@@ -750,7 +772,13 @@
     var p0 = 55 + t*(70-55);
     var mp0 = r55.mp + t*(mp0At2450-r55.mp);
     var rate = rate2300 + t*(rate2450-rate2300);
-    var mp = mp0 + rate*(pct-p0);
+    var mp;
+    if(pct >= 55){
+      mp = mp0 + rate*(pct-p0);
+    } else {
+      var mp55 = mp0 + rate*(55-p0);
+      mp = IDLE_MP + (mp55-IDLE_MP) * (pct/55);
+    }
 
     return {
       mp: mp,
@@ -763,17 +791,23 @@
     };
   }
 
-  // Highest % power at this RPM that stays at or under the recommended MP ceiling.
-  // mp is exactly affine in pct at fixed rpm, so two samples pin down the line.
+  // Highest % power at this RPM that stays at or under the recommended MP
+  // ceiling. mp(pct) is monotonic but has a kink at 55% (cruise-range model
+  // above, idle-anchored model below), so this binary searches rather than
+  // solving a single line like the old 40-75%-only version did.
   function solvePctForLimit(rpm, cond){
     var ceiling = ceilingMP(rpm);
-    var mpLo = computeCustom(rpm, 40, cond).mp;
-    var mpHi = computeCustom(rpm, 75, cond).mp;
-    if(mpHi === mpLo) return mpLo <= ceiling ? 75 : 40;
-    var pct = 40 + (ceiling-mpLo) * (75-40) / (mpHi-mpLo);
+    function excess(pct){ return computeCustom(rpm, pct, cond).mp - ceiling; }
+    if(excess(PCT_MIN) > 0.05) return PCT_MIN;
+    if(excess(PCT_MAX) <= 0.05) return PCT_MAX;
+    var lo = PCT_MIN, hi = PCT_MAX;
+    for(var i=0; i<24; i++){
+      var mid = (lo+hi)/2;
+      if(excess(mid) > 0.05) hi = mid; else lo = mid;
+    }
     // Round DOWN to the step grid -- rounding to nearest can land just past
     // the true crossing point and put the "corrected" value over the ceiling.
-    return clamp(Math.floor(pct/5)*5, 40, 75);
+    return clamp(Math.floor(lo/5)*5, PCT_MIN, PCT_MAX);
   }
 
   // Lowest RPM that brings this % power back at or under the recommended MP
@@ -878,10 +912,26 @@
         ticksG.appendChild(line);
       }
     }
+    // A static redline-style arc marking cfg.alertRange, drawn once behind
+    // the ticks -- e.g. the sub-40% "below the certified 55-75% tables" band.
+    function buildAlertArc(){
+      if(!cfg.alertRange) return;
+      var a0 = angleFor(cfg.alertRange[0]), a1 = angleFor(cfg.alertRange[1]);
+      var p0 = point(42, a0), p1 = point(42, a1);
+      var largeArc = Math.abs(a1-a0) > 180 ? 1 : 0;
+      var arc = document.createElementNS('http://www.w3.org/2000/svg','path');
+      arc.setAttribute('d', 'M '+p0.x+' '+p0.y+' A 42 42 0 '+largeArc+' 1 '+p1.x+' '+p1.y);
+      arc.setAttribute('class', 'dial-alert-arc');
+      svg.insertBefore(arc, ticksG);
+    }
+    function inAlertRange(v){
+      return !!cfg.alertRange && v >= cfg.alertRange[0] && v <= cfg.alertRange[1];
+    }
     function render(){
       needle.setAttribute('transform','rotate('+angleFor(value)+' 50 50)');
       valueEl.textContent = value.toFixed(cfg.decimals);
       root.setAttribute('aria-valuenow', value);
+      root.classList.toggle('alert', inAlertRange(value));
     }
     function setValue(v, silent){
       var steps = Math.round((v-cfg.min)/cfg.step);
@@ -933,6 +983,7 @@
       })(nudgeBtns[i]);
     }
 
+    buildAlertArc();
     buildTicks();
     render();
     return {
@@ -1140,7 +1191,7 @@
     enforceLimits('rpm');
     recompute();
   });
-  pctDial = setupDial('pct', {min:40,max:75,step:5,decimals:0,tickStep:5,value:65}, function(){
+  pctDial = setupDial('pct', {min:10,max:75,step:5,decimals:0,tickStep:5,value:65,alertRange:[10,40]}, function(){
     enforceLimits('pct');
     recompute();
   });
