@@ -734,14 +734,18 @@
     var r65 = lookup(65, cond.pa, cond.isaDev);
     var r75 = lookup(75, cond.pa, cond.isaDev);
 
-    var slope2450 = (75-65)/(r75.mp-r65.mp);
-    var slope2300 = slope2450 * (2300/2450);
+    // Work in inHg-per-%power (never divides by an MP difference) rather than
+    // %power-per-inHg, so the certified full-throttle cells -- where 65% and
+    // 75% need the identical MP -- give a well-behaved rate of 0 instead of a
+    // divide-by-zero.
+    var rate2450 = (r75.mp-r65.mp) / (75-65);
+    var rate2300 = rate2450 * (2450/2300);
     var t = (rpm-2300)/(2450-2300);
-    var mp0At2450 = r65.mp + (70-65)/slope2450;
+    var mp0At2450 = r65.mp + rate2450*(70-65);
     var p0 = 55 + t*(70-55);
     var mp0 = r55.mp + t*(mp0At2450-r55.mp);
-    var slope = slope2300 + t*(slope2450-slope2300);
-    var mp = mp0 + (pct-p0)/slope;
+    var rate = rate2300 + t*(rate2450-rate2300);
+    var mp = mp0 + rate*(pct-p0);
 
     return {
       mp: mp,
@@ -760,6 +764,7 @@
     var ceiling = ceilingMP(rpm);
     var mpLo = computeCustom(rpm, 40, cond).mp;
     var mpHi = computeCustom(rpm, 75, cond).mp;
+    if(mpHi === mpLo) return mpLo <= ceiling ? 75 : 40;
     var pct = 40 + (ceiling-mpLo) * (75-40) / (mpHi-mpLo);
     return clamp(Math.round(pct/5)*5, 40, 75);
   }
