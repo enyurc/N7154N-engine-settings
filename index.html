@@ -64,8 +64,8 @@
   }
 
   *{box-sizing:border-box;}
-  html,body{background:var(--bg);}
   body{
+    background:var(--bg);
     color:var(--ink);
     font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
     margin:0;
@@ -132,26 +132,79 @@
     padding:1rem 1.1rem;
   }
 
-  .field-grid{
+  /* ---- Conditions: altitude / temp / altimeter gauges ---- */
+  .cond-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-    gap:.8rem;
+    grid-template-columns:1fr 1fr;
+    gap:1.3rem 1rem;
   }
-  label.field{display:flex;flex-direction:column;gap:.35rem;}
-  label.field span{font-size:.74rem;color:var(--ink-dim);font-weight:600;}
-  input[type=number]{
-    font:inherit;
-    font-size:1.05rem;
-    padding:.55rem .6rem;
-    border-radius:9px;
-    border:1px solid var(--border);
-    background:var(--bg);
-    color:var(--ink);
-    width:100%;
+  .cond-altitude{grid-column:1;grid-row:1;}
+  .cond-temp{grid-column:2;grid-row:1;}
+  .cond-altimeter{grid-column:1 / -1;grid-row:2;}
+  .cond-cell{display:flex;flex-direction:column;align-items:center;gap:.55rem;}
+  .dial-caption{
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    text-align:center;
   }
-  input[type=number]:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .dial-hint{font-size:.68rem;color:var(--ink-dim);text-align:center;max-width:150px;}
 
-  .derived-chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.9rem;}
+  .gauge{
+    width:136px;height:136px;border-radius:50%;
+    background:radial-gradient(circle at 32% -8%,var(--bezel-2),var(--bezel) 72%);
+    box-shadow:inset 0 0 0 1px #000, 0 6px 18px -8px rgba(0,0,0,.5);
+    position:relative;
+  }
+
+  .dial{cursor:pointer;touch-action:none;outline:none;}
+  .dial:focus-visible{box-shadow:inset 0 0 0 1px #000, 0 6px 18px -8px rgba(0,0,0,.5), 0 0 0 3px var(--accent);}
+  .dial svg{width:100%;height:100%;display:block;}
+  .dial-tick{stroke:var(--bezel-label);stroke-width:1.4;}
+  .dial-needle line{stroke:var(--bezel-digit);stroke-width:3.2;stroke-linecap:round;
+    filter:drop-shadow(0 0 3px rgba(242,169,60,.55));}
+  .dial-hub{fill:var(--bezel-digit);}
+  .dial-readout{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    pointer-events:none;gap:.05rem;
+  }
+  .dial-value{
+    color:var(--bezel-digit);
+    font-family:ui-monospace,"SF Mono","Menlo",monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:1.3rem;font-weight:600;
+    text-shadow:0 0 14px rgba(242,169,60,.35);
+  }
+  .dial-unit{color:var(--bezel-digit-dim);font-size:.66rem;font-weight:600;margin-top:.1rem;}
+
+  .select-face{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;}
+  .select-value{
+    color:var(--bezel-digit);
+    font-family:ui-monospace,"SF Mono","Menlo",monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:1.35rem;font-weight:600;
+    text-shadow:0 0 14px rgba(242,169,60,.35);
+  }
+  .select-chevron{color:var(--bezel-label);font-size:.8rem;margin-top:.15rem;}
+  .native-select{position:absolute;inset:0;opacity:0;border:0;width:100%;height:100%;cursor:pointer;}
+
+  .dial-nudge{display:flex;gap:.6rem;}
+  .nudge-btn{
+    width:34px;height:34px;border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink);
+    font-size:1.15rem;font-weight:700;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .nudge-btn:hover{background:var(--surface-2);}
+  .nudge-btn:active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+
+  .derived-chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.2rem;}
   .chip{
     font-size:.82rem;
     padding:.4rem .7rem;
@@ -312,20 +365,63 @@
   <section id="conditions">
     <p class="section-label">Conditions</p>
     <div class="card">
-      <div class="field-grid">
-        <label class="field">
-          <span>Field elevation (ft)</span>
-          <input type="number" id="in-elev" value="0" step="10" inputmode="numeric">
-        </label>
-        <label class="field">
-          <span>Altimeter setting (inHg)</span>
-          <input type="number" id="in-altimeter" value="29.92" step="0.01" inputmode="decimal">
-        </label>
-        <label class="field">
-          <span>Outside air temp (&deg;C)</span>
-          <input type="number" id="in-oat" value="15" step="1" inputmode="numeric">
-        </label>
+      <div class="cond-grid">
+
+        <div class="cond-cell cond-altitude">
+          <span class="dial-caption">Altitude</span>
+          <div class="gauge select-face" id="altitude-face">
+            <span class="select-value"><span id="altitude-display">6,000</span></span>
+            <span class="dial-unit">FT</span>
+            <span class="select-chevron">&#9662;</span>
+            <select id="in-altitude" class="native-select" aria-label="Altitude"></select>
+          </div>
+          <span class="dial-hint">pressure altitude corrected below</span>
+        </div>
+
+        <div class="cond-cell cond-temp">
+          <span class="dial-caption">Outside Air Temp</span>
+          <div class="gauge dial" id="dial-oat" tabindex="0" role="slider"
+               aria-label="Outside air temperature" aria-valuemin="-40" aria-valuemax="40" aria-valuenow="15">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">15</span>
+              <span class="dial-unit">&deg;C</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="oat" data-dir="-1" aria-label="Decrease temperature">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="oat" data-dir="1" aria-label="Increase temperature">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell cond-altimeter">
+          <span class="dial-caption">Altimeter Setting</span>
+          <div class="gauge dial" id="dial-altimeter" tabindex="0" role="slider"
+               aria-label="Altimeter setting" aria-valuemin="28" aria-valuemax="31" aria-valuenow="29.92">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">29.92</span>
+              <span class="dial-unit">inHg</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="altimeter" data-dir="-1" aria-label="Decrease altimeter setting">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="altimeter" data-dir="1" aria-label="Increase altimeter setting">+</button>
+          </div>
+        </div>
+
       </div>
+
       <div class="derived-chips" id="chips"></div>
     </div>
   </section>
@@ -534,10 +630,11 @@
   var state = { pct: 65 };
 
   function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+
   // Matches the POH's own "standard day" column exactly (17°C SL, -2.0°C/1000ft),
   // not literal ISA — the printed OAT already carries the chart's ram-rise convention.
   function isaTempC(paFt){ return 17 - 2.0*(paFt/1000); }
-  function pressureAltitude(elevFt, altimeter){ return elevFt + (29.92 - altimeter)*1000; }
+  function pressureAltitude(indicatedFt, altimeter){ return indicatedFt + (29.92 - altimeter)*1000; }
   function densityRatio(daFt){
     var t = Math.max(1 - 6.8756e-6*daFt, 0.0001);
     return Math.pow(t, 4.2561);
@@ -576,8 +673,116 @@
     };
   }
 
+  // ---- Rotary dial control ----
+  function setupDial(key, cfg, onChange){
+    var root = document.getElementById('dial-'+key);
+    var svg = root.querySelector('svg');
+    var needle = root.querySelector('.dial-needle');
+    var ticksG = root.querySelector('.dial-ticks');
+    var valueEl = root.querySelector('.dial-value');
+    var value = cfg.value;
+
+    function angleFor(v){
+      var t = (v-cfg.min)/(cfg.max-cfg.min);
+      return -135 + t*270;
+    }
+    function point(r, thetaDeg){
+      var rad = thetaDeg*Math.PI/180;
+      return { x: 50 + r*Math.sin(rad), y: 50 - r*Math.cos(rad) };
+    }
+    function buildTicks(){
+      ticksG.innerHTML = '';
+      var n = Math.round((cfg.max-cfg.min)/cfg.tickStep);
+      for(var i=0; i<=n; i++){
+        var v = cfg.min + i*cfg.tickStep;
+        var th = angleFor(v);
+        var p1 = point(46, th), p2 = point(39, th);
+        var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y);
+        line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
+        line.setAttribute('class','dial-tick');
+        ticksG.appendChild(line);
+      }
+    }
+    function render(){
+      needle.setAttribute('transform','rotate('+angleFor(value)+' 50 50)');
+      valueEl.textContent = value.toFixed(cfg.decimals);
+      root.setAttribute('aria-valuenow', value);
+    }
+    function setValue(v, silent){
+      var steps = Math.round((v-cfg.min)/cfg.step);
+      var snapped = cfg.min + steps*cfg.step;
+      snapped = clamp(Math.round(snapped/cfg.step)*cfg.step, cfg.min, cfg.max);
+      value = snapped;
+      render();
+      if(!silent) onChange(value);
+    }
+    function angleFromEvent(e){
+      var rect = svg.getBoundingClientRect();
+      var cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+      var dx = e.clientX - cx, dy = e.clientY - cy;
+      var raw = Math.atan2(dx, -dy) * 180/Math.PI;
+      if(raw > 135) raw = 135;
+      if(raw < -135) raw = -135;
+      return raw;
+    }
+    function valueFromAngle(a){
+      var t = (a+135)/270;
+      return cfg.min + t*(cfg.max-cfg.min);
+    }
+
+    var dragging = false;
+    root.addEventListener('pointerdown', function(e){
+      dragging = true;
+      if(root.setPointerCapture) root.setPointerCapture(e.pointerId);
+      setValue(valueFromAngle(angleFromEvent(e)));
+      e.preventDefault();
+    });
+    root.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      setValue(valueFromAngle(angleFromEvent(e)));
+    });
+    root.addEventListener('pointerup', function(){ dragging = false; });
+    root.addEventListener('pointercancel', function(){ dragging = false; });
+    root.addEventListener('keydown', function(e){
+      if(e.key==='ArrowUp' || e.key==='ArrowRight'){ setValue(value+cfg.step); e.preventDefault(); }
+      else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ setValue(value-cfg.step); e.preventDefault(); }
+    });
+
+    var nudgeBtns = document.querySelectorAll('.nudge-btn[data-dial="'+key+'"]');
+    for(var i=0;i<nudgeBtns.length;i++){
+      (function(btn){
+        btn.addEventListener('click', function(){
+          var dir = parseFloat(btn.getAttribute('data-dir'));
+          setValue(value + dir*cfg.step);
+        });
+      })(nudgeBtns[i]);
+    }
+
+    buildTicks();
+    render();
+    return { get: function(){ return value; } };
+  }
+
+  var oatDial, altimeterDial;
+
+  function populateAltitude(){
+    var sel = document.getElementById('in-altitude');
+    for(var a=2000; a<=16000; a+=500){
+      var opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a.toLocaleString() + ' ft';
+      if(a === 6000) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function(){
+      document.getElementById('altitude-display').textContent = parseFloat(sel.value).toLocaleString();
+      recompute();
+    });
+  }
+
   var els = {};
-  ['in-elev','in-altimeter','in-oat','chips','pct-row','bezel-pct-label',
+  ['chips','pct-row','bezel-pct-label',
    'hero-rpm','hero-mp','hero-ff','hero-ff-psi','hero-tas','hero-tas-mph','hero-ias','hero-note',
    'table-body'
   ].forEach(function(id){ els[id] = document.getElementById(id); });
@@ -600,16 +805,14 @@
   }
 
   function readConditions(){
-    var elev = parseFloat(els['in-elev'].value) || 0;
-    var altimeter = parseFloat(els['in-altimeter'].value);
-    if(!isFinite(altimeter)) altimeter = 29.92;
-    var oat = parseFloat(els['in-oat'].value);
-    if(!isFinite(oat)) oat = 15;
-    var pa = pressureAltitude(elev, altimeter);
+    var altitude = parseFloat(document.getElementById('in-altitude').value) || 6000;
+    var altimeter = altimeterDial.get();
+    var oat = oatDial.get();
+    var pa = pressureAltitude(altitude, altimeter);
     var isaStd = isaTempC(pa);
     var isaDev = oat - isaStd;
     var da = pa + 120*isaDev;
-    return {elev:elev, altimeter:altimeter, oat:oat, pa:pa, isaDev:isaDev, da:da};
+    return {altitude:altitude, altimeter:altimeter, oat:oat, pa:pa, isaDev:isaDev, da:da};
   }
 
   function recompute(){
@@ -657,19 +860,13 @@
     els['table-body'].innerHTML = rows;
   }
 
-  els['in-elev'].addEventListener('input', recompute);
-  els['in-altimeter'].addEventListener('input', recompute);
-  els['in-oat'].addEventListener('input', recompute);
-
   buildPctButtons();
+  populateAltitude();
+  oatDial = setupDial('oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, recompute);
+  altimeterDial = setupDial('altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, recompute);
   recompute();
-
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('sw.js').catch(function(){});
-    });
-  }
 })();
 </script>
+
 </body>
 </html>
