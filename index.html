@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>N7154N Power Settings</title>
-<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza, IO-470-K) across altitude and temperature.">
+<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza, IO-470-K), interpolated from the aircraft's certified POH cruise power tables.">
 <meta name="theme-color" content="#12161B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -164,36 +164,29 @@
   }
   .chip b{font-weight:700;}
   .chip small{color:var(--ink-dim);font-weight:500;}
+  .chip.warn{background:var(--warn-bg);color:var(--warn);}
+  .chip.warn b, .chip.warn small{color:var(--warn);}
 
-  .rpm-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem;}
-  .rpm-btn{
+  .pct-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem;}
+  .pct-btn{
     flex:1 1 auto;
-    min-width:64px;
+    min-width:96px;
     text-align:center;
-    padding:.55rem .4rem;
-    border-radius:9px;
+    padding:.7rem .5rem .6rem;
+    border-radius:12px;
     border:1px solid var(--border);
     background:var(--surface);
     color:var(--ink);
-    font-weight:600;
-    font-size:.88rem;
     cursor:pointer;
   }
-  .rpm-btn.active{
+  .pct-btn .pct-num{display:block;font-weight:800;font-size:1.3rem;}
+  .pct-btn .pct-sub{display:block;font-size:.7rem;color:var(--ink-dim);margin-top:.1rem;}
+  .pct-btn.active{
     background:var(--accent);
-    color:var(--accent-ink);
     border-color:var(--accent);
   }
-  .rpm-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-
-  .power-slider-row{display:flex;align-items:center;gap:.9rem;margin-top:1rem;}
-  input[type=range]{flex:1;accent-color:var(--accent);}
-  .power-readout{
-    font-weight:800;
-    font-size:1.3rem;
-    min-width:4.2ch;
-    text-align:right;
-  }
+  .pct-btn.active .pct-num, .pct-btn.active .pct-sub{color:var(--accent-ink);}
+  .pct-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
   .bezel{
     margin-top:1.1rem;
@@ -231,6 +224,7 @@
   }
   .bezel-item .val.small{font-size:1.15rem;}
   .bezel-item .unit{color:var(--bezel-digit-dim);font-size:.72rem;font-weight:600;margin-left:.15rem;}
+  .bezel-item .sub{color:var(--bezel-digit-dim);font-size:.72rem;margin-top:.1rem;}
   .bezel-note{
     margin:.9rem 0 0;
     font-size:.78rem;
@@ -249,26 +243,16 @@
     font-weight:700;
   }
   tbody tr.current{background:var(--surface-2);}
-  tbody tr.unreachable td{color:var(--ink-dim);}
   .table-scroll{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
-  .table-scroll table{min-width:560px;}
-  .pill{
-    display:inline-block;
-    font-size:.68rem;
-    font-weight:700;
-    padding:.15rem .45rem;
-    border-radius:999px;
-  }
-  .pill.good{background:var(--good-bg);color:var(--good);}
-  .pill.warn{background:var(--warn-bg);color:var(--warn);}
+  .table-scroll table{min-width:520px;}
 
-  details.calib{
+  details.source{
     background:var(--surface);
     border:1px solid var(--border);
     border-radius:14px;
     padding:.9rem 1.1rem;
   }
-  details.calib summary{
+  details.source summary{
     cursor:pointer;
     font-weight:700;
     font-size:.92rem;
@@ -277,29 +261,11 @@
     align-items:center;
     justify-content:space-between;
   }
-  details.calib summary::-webkit-details-marker{display:none;}
+  details.source summary::-webkit-details-marker{display:none;}
   summary .chev{transition:transform .2s;color:var(--ink-dim);}
   details[open] summary .chev{transform:rotate(90deg);}
-  .calib-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:.8rem;
-    margin-top:1rem;
-  }
-  .calib-grid label.field span{color:var(--ink-dim);}
-  .reset-row{margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap;}
-  button.ghost{
-    font:inherit;
-    font-size:.82rem;
-    font-weight:600;
-    padding:.5rem .8rem;
-    border-radius:9px;
-    border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--ink);
-    cursor:pointer;
-  }
-  button.ghost:hover{background:var(--surface-2);}
+  details.source p{font-size:.85rem;line-height:1.55;color:var(--ink-dim);margin:.8rem 0 0;}
+  details.source p b{color:var(--ink);}
 
   .disclaimer{
     display:flex;
@@ -334,10 +300,9 @@
     <h1>Power Setting Calculator</h1>
     <p class="subhead">1968 Beechcraft E33 Bonanza &middot; Continental IO&#8209;470&#8209;K</p>
     <div class="badges">
-      <span class="badge">225 BHP @ 2600 RPM</span>
-      <span class="badge">Normally aspirated</span>
-      <span class="badge">Fixed injection</span>
-      <span class="badge">100LL</span>
+      <span class="badge">225 BHP rated @ 2600 RPM</span>
+      <span class="badge">POH Section V, 8/1982</span>
+      <span class="badge">2950 lb avg cruise wt</span>
     </div>
   </div>
 </header>
@@ -361,27 +326,17 @@
           <input type="number" id="in-oat" value="15" step="1" inputmode="numeric">
         </label>
       </div>
-      <div class="derived-chips">
-        <span class="chip"><b class="num" id="out-pa">&mdash;</b><small>ft pressure alt.</small></span>
-        <span class="chip"><b class="num" id="out-da">&mdash;</b><small>ft density alt.</small></span>
-        <span class="chip"><b class="num" id="out-isadev">&mdash;</b><small>ISA dev.</small></span>
-        <span class="chip"><b class="num" id="out-wotmp">&mdash;</b><small>in Hg avail. WOT</small></span>
-      </div>
+      <div class="derived-chips" id="chips"></div>
     </div>
   </section>
 
   <section id="power">
-    <p class="section-label">Cruise RPM &amp; desired power</p>
+    <p class="section-label">Cruise power setting</p>
     <div class="card">
-      <div class="rpm-row" id="rpm-row" role="group" aria-label="Cruise RPM"></div>
-
-      <div class="power-slider-row">
-        <input type="range" id="in-power" min="40" max="100" step="1" value="65" aria-label="Desired percent power">
-        <span class="power-readout num"><span id="out-power-val">65</span>%</span>
-      </div>
+      <div class="pct-row" id="pct-row" role="group" aria-label="Percent power"></div>
 
       <div class="bezel">
-        <p class="bezel-title">Recommended setting &mdash; <span id="bezel-rpm-label">2500</span> RPM</p>
+        <p class="bezel-title">Setting for <span id="bezel-pct-label">65</span>% power</p>
         <div class="bezel-grid">
           <div class="bezel-item">
             <span class="lbl">RPM</span>
@@ -392,20 +347,19 @@
             <span class="val mono" id="hero-mp">&mdash;<span class="unit">inHg</span></span>
           </div>
           <div class="bezel-item">
-            <span class="lbl">Fuel Flow (rich)</span>
-            <span class="val mono small" id="hero-ff-rich">&mdash;<span class="unit">GPH</span></span>
-          </div>
-          <div class="bezel-item">
-            <span class="lbl">Fuel Flow (lean)</span>
-            <span class="val mono small" id="hero-ff-lean">&mdash;<span class="unit">GPH</span></span>
-          </div>
-          <div class="bezel-item">
-            <span class="lbl">Indicated Airspeed</span>
-            <span class="val mono small" id="hero-ias">&mdash;<span class="unit">KIAS</span></span>
+            <span class="lbl">Fuel Flow</span>
+            <span class="val mono small" id="hero-ff">&mdash;<span class="unit">GPH</span></span>
+            <span class="sub" id="hero-ff-psi"></span>
           </div>
           <div class="bezel-item">
             <span class="lbl">True Airspeed</span>
             <span class="val mono small" id="hero-tas">&mdash;<span class="unit">KTAS</span></span>
+            <span class="sub" id="hero-tas-mph"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Indicated Airspeed</span>
+            <span class="val mono small" id="hero-ias">&mdash;<span class="unit">KIAS</span></span>
+            <span class="sub">derived, not tabulated</span>
           </div>
         </div>
         <p class="bezel-note" id="hero-note"></p>
@@ -414,17 +368,17 @@
   </section>
 
   <section id="table">
-    <p class="section-label">Full power range at <span id="table-rpm-label">2500</span> RPM</p>
+    <p class="section-label">All three POH settings at these conditions</p>
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>% Pwr</th>
+            <th>RPM</th>
             <th>MP (inHg)</th>
-            <th>FF rich</th>
-            <th>FF lean</th>
-            <th>KIAS</th>
+            <th>FF (GPH)</th>
             <th>KTAS</th>
+            <th>KIAS</th>
           </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -432,132 +386,214 @@
     </div>
   </section>
 
-  <section id="calibration">
-    <p class="section-label">Aircraft profile</p>
-    <details class="calib" id="calib-details">
-      <summary>Engine &amp; airframe constants <span class="chev">&#9656;</span></summary>
-      <div class="calib-grid">
-        <label class="field"><span>Rated BHP</span><input type="number" id="c-bhp" value="225" step="1"></label>
-        <label class="field"><span>Rated RPM</span><input type="number" id="c-rpm" value="2600" step="10"></label>
-        <label class="field"><span>WOT MP @ SL, std day (inHg)</span><input type="number" id="c-mp" value="28.5" step="0.1"></label>
-        <label class="field"><span>BSFC &ndash; rich / best power (lb/BHP/hr)</span><input type="number" id="c-bsfc-rich" value="0.45" step="0.01"></label>
-        <label class="field"><span>BSFC &ndash; lean / best economy (lb/BHP/hr)</span><input type="number" id="c-bsfc-lean" value="0.40" step="0.01"></label>
-        <label class="field"><span>Avgas weight (lb/gal)</span><input type="number" id="c-fuelwt" value="6.0" step="0.1"></label>
-        <label class="field"><span>Reference KIAS</span><input type="number" id="c-ias-ref" value="131" step="1"></label>
-        <label class="field"><span>&hellip; at % power</span><input type="number" id="c-pct-ref" value="75" step="1"></label>
-      </div>
-      <div class="reset-row">
-        <button class="ghost" id="btn-save">Save profile</button>
-        <button class="ghost" id="btn-reset">Reset to defaults</button>
-      </div>
+  <section id="source">
+    <p class="section-label">Data source</p>
+    <details class="source" id="source-details">
+      <summary>How these numbers are calculated <span class="chev">&#9656;</span></summary>
+      <p><b>RPM, manifold pressure, fuel flow, and TAS</b> are interpolated directly from the certified
+      Beechcraft Cruise Power Settings tables &mdash; Debonair C33 / Bonanza E33 &amp; F33 Pilot's Operating
+      Handbook, Section V Performance, pages 5&#8209;21 through 5&#8209;23 (August 1982 revision), at 55%,
+      65%, and 75% maximum continuous power, 2950 lb average cruise weight. The tables were transcribed from
+      a scanned copy; spot&#8209;check the figures below against your own copy if anything looks off.</p>
+      <p><b>Indicated airspeed</b> is not tabulated in the POH chart &mdash; it's derived from the tabulated
+      TAS using the standard density-altitude correction (KIAS &asymp; KTAS &times; &radic;&sigma;), which
+      ignores position error and is only an estimate.</p>
+      <p>The chart covers <b>sea level&ndash;16,000 ft pressure altitude</b> and <b>ISA &minus;20&deg;C to
+      ISA +20&deg;C</b>. Conditions outside that range are clamped to the nearest edge of the chart, and the
+      app will say so.</p>
     </details>
   </section>
 
   <section id="notes">
     <div class="disclaimer">
       <span>&#9888;&#65039;</span>
-      <span><b>Reference estimates, not certified POH data.</b> RPM/MP/fuel-flow/airspeed figures are computed from published Continental IO&#8209;470&#8209;K engine characteristics using standard-atmosphere and constant-speed cruise approximations &mdash; they are not transcribed from N7154N&rsquo;s current Pilot&rsquo;s Operating Handbook. Open <b>Aircraft profile</b> above and enter the exact numbers from N7154N&rsquo;s POH performance charts to calibrate this tool, and always cross-check against the current POH, weight &amp; balance, and engine monitor before using any setting in flight.</span>
+      <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check any RPM, manifold
+      pressure, mixture, or airspeed setting against N7154N's current, complete Pilot's Operating Handbook
+      and the aircraft's actual weight before using it in flight.</span>
     </div>
   </section>
 
-  <footer>Built for N7154N &middot; values save to this device only &middot; works offline once installed</footer>
+  <footer>Built for N7154N &middot; works offline once installed</footer>
 </div>
 
 <script>
 (function(){
   "use strict";
 
-  var DEFAULTS = {
-    bhp:225, rpm:2600, mp:28.5,
-    bsfcRich:0.45, bsfcLean:0.40,
-    fuelWt:6.0, iasRef:131, pctRef:75
+  var ALTS = [0,2000,4000,6000,8000,10000,12000,14000,16000];
+
+  var DATA = {
+    55: { rpm: 2300,
+      cold: [
+        {mp:20.2,ffPsi:5.2,ffGph:9.8,tasKt:126,tasMph:145},
+        {mp:19.7,ffPsi:5.2,ffGph:9.8,tasKt:128,tasMph:147},
+        {mp:19.2,ffPsi:5.2,ffGph:9.8,tasKt:130,tasMph:149},
+        {mp:18.7,ffPsi:5.2,ffGph:9.8,tasKt:132,tasMph:152},
+        {mp:18.2,ffPsi:5.2,ffGph:9.8,tasKt:134,tasMph:154},
+        {mp:17.8,ffPsi:5.2,ffGph:9.8,tasKt:136,tasMph:156},
+        {mp:17.3,ffPsi:5.2,ffGph:9.8,tasKt:138,tasMph:158},
+        {mp:16.8,ffPsi:5.2,ffGph:9.8,tasKt:140,tasMph:161},
+        {mp:16.2,ffPsi:4.9,ffGph:9.2,tasKt:135,tasMph:155}
+      ],
+      std: [
+        {mp:20.7,ffPsi:5.2,ffGph:9.8,tasKt:128,tasMph:147},
+        {mp:20.3,ffPsi:5.2,ffGph:9.8,tasKt:130,tasMph:150},
+        {mp:19.8,ffPsi:5.2,ffGph:9.8,tasKt:132,tasMph:152},
+        {mp:19.3,ffPsi:5.2,ffGph:9.8,tasKt:134,tasMph:154},
+        {mp:18.8,ffPsi:5.2,ffGph:9.8,tasKt:136,tasMph:157},
+        {mp:18.3,ffPsi:5.2,ffGph:9.8,tasKt:138,tasMph:159},
+        {mp:17.9,ffPsi:5.2,ffGph:9.8,tasKt:140,tasMph:161},
+        {mp:17.3,ffPsi:5.0,ffGph:9.5,tasKt:138,tasMph:159},
+        {mp:16.2,ffPsi:4.7,ffGph:8.9,tasKt:132,tasMph:152}
+      ],
+      hot: [
+        {mp:21.1,ffPsi:5.2,ffGph:9.8,tasKt:130,tasMph:150},
+        {mp:20.7,ffPsi:5.2,ffGph:9.8,tasKt:133,tasMph:153},
+        {mp:20.2,ffPsi:5.2,ffGph:9.8,tasKt:135,tasMph:155},
+        {mp:19.8,ffPsi:5.2,ffGph:9.8,tasKt:136,tasMph:157},
+        {mp:19.3,ffPsi:5.2,ffGph:9.8,tasKt:138,tasMph:159},
+        {mp:18.8,ffPsi:5.2,ffGph:9.8,tasKt:140,tasMph:161},
+        {mp:18.4,ffPsi:5.1,ffGph:9.6,tasKt:140,tasMph:161},
+        {mp:17.3,ffPsi:4.8,ffGph:9.0,tasKt:134,tasMph:154},
+        {mp:16.2,ffPsi:4.6,ffGph:8.5,tasKt:123,tasMph:141}
+      ]
+    },
+    65: { rpm: 2450,
+      cold: [
+        {mp:21.2,ffPsi:6.3,ffGph:11.5,tasKt:135,tasMph:156},
+        {mp:20.7,ffPsi:6.3,ffGph:11.5,tasKt:138,tasMph:159},
+        {mp:20.3,ffPsi:6.3,ffGph:11.5,tasKt:140,tasMph:162},
+        {mp:19.8,ffPsi:6.3,ffGph:11.5,tasKt:143,tasMph:164},
+        {mp:19.4,ffPsi:6.3,ffGph:11.5,tasKt:145,tasMph:167},
+        {mp:18.9,ffPsi:6.3,ffGph:11.5,tasKt:148,tasMph:170},
+        {mp:18.5,ffPsi:6.3,ffGph:11.5,tasKt:150,tasMph:171},
+        {mp:17.3,ffPsi:5.9,ffGph:10.9,tasKt:148,tasMph:171},
+        {mp:16.0,ffPsi:5.3,ffGph:10.1,tasKt:144,tasMph:166}
+      ],
+      std: [
+        {mp:21.7,ffPsi:6.3,ffGph:11.5,tasKt:138,tasMph:159},
+        {mp:21.3,ffPsi:6.3,ffGph:11.5,tasKt:141,tasMph:162},
+        {mp:20.8,ffPsi:6.3,ffGph:11.5,tasKt:143,tasMph:165},
+        {mp:20.4,ffPsi:6.3,ffGph:11.5,tasKt:146,tasMph:168},
+        {mp:19.9,ffPsi:6.3,ffGph:11.5,tasKt:148,tasMph:171},
+        {mp:19.5,ffPsi:6.3,ffGph:11.5,tasKt:151,tasMph:174},
+        {mp:18.6,ffPsi:6.0,ffGph:11.1,tasKt:151,tasMph:173},
+        {mp:17.3,ffPsi:5.5,ffGph:10.3,tasKt:146,tasMph:168},
+        {mp:16.0,ffPsi:5.1,ffGph:9.6,tasKt:141,tasMph:162}
+      ],
+      hot: [
+        {mp:22.3,ffPsi:6.3,ffGph:11.5,tasKt:141,tasMph:163},
+        {mp:21.8,ffPsi:6.3,ffGph:11.5,tasKt:144,tasMph:166},
+        {mp:21.4,ffPsi:6.3,ffGph:11.5,tasKt:146,tasMph:168},
+        {mp:20.9,ffPsi:6.3,ffGph:11.5,tasKt:149,tasMph:171},
+        {mp:20.4,ffPsi:6.3,ffGph:11.5,tasKt:151,tasMph:174},
+        {mp:20.0,ffPsi:6.2,ffGph:11.2,tasKt:152,tasMph:175},
+        {mp:18.6,ffPsi:5.6,ffGph:10.5,tasKt:148,tasMph:171},
+        {mp:17.3,ffPsi:5.1,ffGph:9.7,tasKt:143,tasMph:164},
+        {mp:16.0,ffPsi:4.8,ffGph:9.1,tasKt:135,tasMph:156}
+      ]
+    },
+    75: { rpm: 2450,
+      cold: [
+        {mp:23.4,ffPsi:7.8,ffGph:13.4,tasKt:144,tasMph:166},
+        {mp:22.9,ffPsi:7.8,ffGph:13.4,tasKt:147,tasMph:169},
+        {mp:22.4,ffPsi:7.8,ffGph:13.4,tasKt:150,tasMph:172},
+        {mp:21.9,ffPsi:7.8,ffGph:13.4,tasKt:152,tasMph:175},
+        {mp:21.3,ffPsi:7.8,ffGph:13.4,tasKt:156,tasMph:178},
+        {mp:20.1,ffPsi:7.3,ffGph:12.7,tasKt:155,tasMph:178},
+        {mp:18.6,ffPsi:6.5,ffGph:11.8,tasKt:152,tasMph:175},
+        {mp:17.3,ffPsi:5.9,ffGph:10.9,tasKt:149,tasMph:171},
+        {mp:16.0,ffPsi:5.4,ffGph:10.1,tasKt:144,tasMph:166}
+      ],
+      std: [
+        {mp:24.0,ffPsi:7.8,ffGph:13.4,tasKt:148,tasMph:170},
+        {mp:23.4,ffPsi:7.8,ffGph:13.4,tasKt:150,tasMph:173},
+        {mp:22.8,ffPsi:7.8,ffGph:13.4,tasKt:153,tasMph:176},
+        {mp:22.2,ffPsi:7.8,ffGph:13.4,tasKt:156,tasMph:179},
+        {mp:21.7,ffPsi:7.4,ffGph:12.9,tasKt:156,tasMph:180},
+        {mp:20.1,ffPsi:6.6,ffGph:12.0,tasKt:154,tasMph:177},
+        {mp:18.6,ffPsi:6.0,ffGph:11.1,tasKt:151,tasMph:173},
+        {mp:17.3,ffPsi:5.5,ffGph:10.3,tasKt:146,tasMph:168},
+        {mp:16.0,ffPsi:5.0,ffGph:9.6,tasKt:141,tasMph:162}
+      ],
+      hot: [
+        {mp:24.5,ffPsi:7.8,ffGph:13.4,tasKt:150,tasMph:173},
+        {mp:24.0,ffPsi:7.8,ffGph:13.4,tasKt:153,tasMph:176},
+        {mp:23.5,ffPsi:7.8,ffGph:13.4,tasKt:156,tasMph:180},
+        {mp:23.1,ffPsi:7.6,ffGph:13.2,tasKt:158,tasMph:182},
+        {mp:21.7,ffPsi:6.8,ffGph:12.1,tasKt:155,tasMph:178},
+        {mp:20.1,ffPsi:6.1,ffGph:11.2,tasKt:152,tasMph:175},
+        {mp:18.6,ffPsi:5.6,ffGph:10.5,tasKt:148,tasMph:171},
+        {mp:17.3,ffPsi:5.2,ffGph:9.7,tasKt:143,tasMph:164},
+        {mp:16.0,ffPsi:4.8,ffGph:9.1,tasKt:139,tasMph:156}
+      ]
+    }
   };
-  var RPM_OPTIONS = [2200,2300,2400,2500,2600];
-  var TABLE_ROWS = [45,50,55,60,65,70,75,85,100];
 
-  var state = {
-    cfg: loadCfg(),
-    rpm: 2500,
-    pct: 65
-  };
+  var PCTS = [55,65,75];
+  var state = { pct: 65 };
 
-  function loadCfg(){
-    try{
-      var raw = localStorage.getItem('n7154n-cfg');
-      if(raw) return Object.assign({}, DEFAULTS, JSON.parse(raw));
-    }catch(e){}
-    return Object.assign({}, DEFAULTS);
-  }
-  function saveCfg(){
-    try{ localStorage.setItem('n7154n-cfg', JSON.stringify(state.cfg)); }catch(e){}
-  }
-
+  function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
   function isaTempC(paFt){ return 15 - 1.98*(paFt/1000); }
-  function stdPressureInHg(paFt){
-    return 29.9213 * Math.pow(1 - 6.8756e-6*paFt, 5.2561);
-  }
-  function pressureAltitude(elevFt, altimeter){
-    return elevFt + (29.92 - altimeter)*1000;
-  }
-  function densityAltitude(paFt, oatC){
-    return paFt + 120*(oatC - isaTempC(paFt));
-  }
+  function pressureAltitude(elevFt, altimeter){ return elevFt + (29.92 - altimeter)*1000; }
   function densityRatio(daFt){
     var t = Math.max(1 - 6.8756e-6*daFt, 0.0001);
     return Math.pow(t, 4.2561);
   }
-  function inductionLoss(cfg){ return 29.92 - cfg.mp; }
-  function wotMP(paFt, cfg){ return stdPressureInHg(paFt) - inductionLoss(cfg); }
+  function fmt(n,d){ return isFinite(n) ? n.toFixed(d===undefined?0:d) : '&mdash;'; }
 
-  function pctFromMP(mp, rpm, paFt, oatC, cfg){
-    var tStd = isaTempC(paFt) + 273.15;
-    var tAct = oatC + 273.15;
-    return 100 * (rpm/cfg.rpm) * (mp/cfg.mp) * (tStd/tAct);
-  }
-  function mpFromPct(pct, rpm, paFt, oatC, cfg){
-    var tStd = isaTempC(paFt) + 273.15;
-    var tAct = oatC + 273.15;
-    return (pct/100) * cfg.mp * (cfg.rpm/rpm) * (tAct/tStd);
-  }
-  function fuelGPH(pct, bsfc, cfg){
-    var bhp = (pct/100) * cfg.bhp;
-    return (bhp*bsfc) / cfg.fuelWt;
-  }
-  function iasFromPct(pct, cfg){
-    return cfg.iasRef * Math.cbrt(pct/cfg.pctRef);
-  }
-  function tasFromIas(ias, daFt){
-    return ias / Math.sqrt(densityRatio(daFt));
+  function lerpRow(arr, i0, i1, t){
+    var a = arr[i0], b = arr[i1];
+    function L(k){ return a[k] + (b[k]-a[k])*t; }
+    return { mp:L('mp'), ffPsi:L('ffPsi'), ffGph:L('ffGph'), tasKt:L('tasKt'), tasMph:L('tasMph') };
   }
 
-  function fmt(n, d){
-    if(!isFinite(n)) return '&mdash;';
-    return n.toFixed(d===undefined?0:d);
+  function lookup(pct, paFtRaw, isaDevRaw){
+    var table = DATA[pct];
+    var paFt = clamp(paFtRaw, ALTS[0], ALTS[ALTS.length-1]);
+    var isaDev = clamp(isaDevRaw, -20, 20);
+
+    var i0 = 0;
+    while(i0 < ALTS.length-2 && ALTS[i0+1] < paFt) i0++;
+    var i1 = i0+1;
+    var tAlt = (paFt - ALTS[i0]) / (ALTS[i1] - ALTS[i0]);
+
+    var keys, dLo, dHi;
+    if(isaDev <= 0){ keys=['cold','std']; dLo=-20; dHi=0; }
+    else { keys=['std','hot']; dLo=0; dHi=20; }
+    var tDev = (isaDev - dLo)/(dHi-dLo);
+
+    var rowLo = lerpRow(table[keys[0]], i0, i1, tAlt);
+    var rowHi = lerpRow(table[keys[1]], i0, i1, tAlt);
+
+    function L(k){ return rowLo[k] + (rowHi[k]-rowLo[k])*tDev; }
+    return {
+      rpm: table.rpm,
+      mp: L('mp'), ffPsi: L('ffPsi'), ffGph: L('ffGph'), tasKt: L('tasKt'), tasMph: L('tasMph'),
+      clamped: (paFtRaw !== paFt) || (isaDevRaw !== isaDev)
+    };
   }
 
   var els = {};
-  ['in-elev','in-altimeter','in-oat','out-pa','out-da','out-isadev','out-wotmp',
-   'in-power','out-power-val','bezel-rpm-label','table-rpm-label',
-   'hero-rpm','hero-mp','hero-ff-rich','hero-ff-lean','hero-ias','hero-tas','hero-note',
-   'table-body','rpm-row',
-   'c-bhp','c-rpm','c-mp','c-bsfc-rich','c-bsfc-lean','c-fuelwt','c-ias-ref','c-pct-ref',
-   'btn-save','btn-reset'
+  ['in-elev','in-altimeter','in-oat','chips','pct-row','bezel-pct-label',
+   'hero-rpm','hero-mp','hero-ff','hero-ff-psi','hero-tas','hero-tas-mph','hero-ias','hero-note',
+   'table-body'
   ].forEach(function(id){ els[id] = document.getElementById(id); });
 
-  function buildRpmButtons(){
-    els['rpm-row'].innerHTML = '';
-    RPM_OPTIONS.forEach(function(r){
+  function buildPctButtons(){
+    els['pct-row'].innerHTML = '';
+    PCTS.forEach(function(p){
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'rpm-btn' + (r===state.rpm ? ' active' : '');
-      b.textContent = r;
-      b.setAttribute('aria-pressed', r===state.rpm ? 'true':'false');
+      b.className = 'pct-btn' + (p===state.pct ? ' active' : '');
+      b.innerHTML = '<span class="pct-num">'+p+'%</span><span class="pct-sub">'+DATA[p].rpm+' RPM</span>';
+      b.setAttribute('aria-pressed', p===state.pct ? 'true':'false');
       b.addEventListener('click', function(){
-        state.rpm = r;
-        buildRpmButtons();
+        state.pct = p;
+        buildPctButtons();
         recompute();
       });
-      els['rpm-row'].appendChild(b);
+      els['pct-row'].appendChild(b);
     });
   }
 
@@ -568,132 +604,62 @@
     var oat = parseFloat(els['in-oat'].value);
     if(!isFinite(oat)) oat = 15;
     var pa = pressureAltitude(elev, altimeter);
-    var da = densityAltitude(pa, oat);
-    var isaDev = oat - isaTempC(pa);
-    return {elev:elev, altimeter:altimeter, oat:oat, pa:pa, da:da, isaDev:isaDev};
+    var isaStd = isaTempC(pa);
+    var isaDev = oat - isaStd;
+    var da = pa + 120*isaDev;
+    return {elev:elev, altimeter:altimeter, oat:oat, pa:pa, isaDev:isaDev, da:da};
   }
 
   function recompute(){
-    var cfg = state.cfg;
     var cond = readConditions();
-    var wot = wotMP(cond.pa, cfg);
+    var outOfRange = cond.pa < ALTS[0] || cond.pa > ALTS[ALTS.length-1] || Math.abs(cond.isaDev) > 20;
 
-    els['out-pa'].textContent = fmt(cond.pa,0);
-    els['out-da'].textContent = fmt(cond.da,0);
-    els['out-isadev'].textContent = (cond.isaDev>=0?'+':'') + fmt(cond.isaDev,1) + '°C';
-    els['out-wotmp'].textContent = fmt(wot,1);
+    els['chips'].innerHTML =
+      '<span class="chip"><b class="num">'+fmt(cond.pa,0)+'</b><small>ft pressure alt.</small></span>' +
+      '<span class="chip"><b class="num">'+fmt(cond.da,0)+'</b><small>ft density alt.</small></span>' +
+      '<span class="chip"><b class="num">'+(cond.isaDev>=0?'+':'')+fmt(cond.isaDev,1)+'&deg;C</b><small>ISA deviation</small></span>' +
+      (outOfRange ? '<span class="chip warn"><b>&#9888;</b><small>outside chart range &mdash; clamped to nearest edge</small></span>' : '');
 
-    els['out-power-val'].textContent = state.pct;
-    els['bezel-rpm-label'].textContent = state.rpm;
-    els['table-rpm-label'].textContent = state.rpm;
+    els['bezel-pct-label'].textContent = state.pct;
 
-    var maxPct = pctFromMP(wot, state.rpm, cond.pa, cond.oat, cfg);
-    var targetPct = state.pct;
-    var achievable = targetPct <= maxPct + 0.05;
-    var usePct = achievable ? targetPct : maxPct;
-    var mp = mpFromPct(usePct, state.rpm, cond.pa, cond.oat, cfg);
-    mp = Math.min(mp, wot);
+    var r = lookup(state.pct, cond.pa, cond.isaDev);
+    var ias = r.tasKt * Math.sqrt(densityRatio(cond.da));
 
-    var ffRich = fuelGPH(usePct, cfg.bsfcRich, cfg);
-    var ffLean = fuelGPH(usePct, cfg.bsfcLean, cfg);
-    var ias = iasFromPct(usePct, cfg);
-    var tas = tasFromIas(ias, cond.da);
-
-    els['hero-rpm'].innerHTML = state.rpm;
-    els['hero-mp'].innerHTML = fmt(mp,1) + '<span class="unit">inHg</span>';
-    els['hero-ff-rich'].innerHTML = fmt(ffRich,1) + '<span class="unit">GPH</span>';
-    els['hero-ff-lean'].innerHTML = fmt(ffLean,1) + '<span class="unit">GPH</span>';
+    els['hero-rpm'].innerHTML = r.rpm;
+    els['hero-mp'].innerHTML = fmt(r.mp,1) + '<span class="unit">inHg</span>';
+    els['hero-ff'].innerHTML = fmt(r.ffGph,1) + '<span class="unit">GPH</span>';
+    els['hero-ff-psi'].textContent = fmt(r.ffPsi,1) + ' PSI';
+    els['hero-tas'].innerHTML = fmt(r.tasKt,0) + '<span class="unit">KTAS</span>';
+    els['hero-tas-mph'].textContent = fmt(r.tasMph,0) + ' MPH';
     els['hero-ias'].innerHTML = fmt(ias,0) + '<span class="unit">KIAS</span>';
-    els['hero-tas'].innerHTML = fmt(tas,0) + '<span class="unit">KTAS</span>';
 
-    var noteEl = els['hero-note'];
-    if(!achievable){
-      noteEl.textContent = targetPct + '% power is not achievable at ' + state.rpm + ' RPM at this altitude — showing max available, ' + fmt(maxPct,0) + '% (full throttle).';
-      noteEl.classList.add('warn');
-    } else {
-      noteEl.textContent = 'Full throttle at this altitude/RPM would give approximately ' + fmt(maxPct,0) + '% power.';
-      noteEl.classList.remove('warn');
-    }
+    els['hero-note'].textContent = r.clamped
+      ? 'Conditions are outside the POH chart (SL–16,000 ft, ISA ±20°C) — values shown are clamped to the nearest edge of the data.'
+      : 'Interpolated from the POH Section V cruise power tables for these exact conditions.';
+    els['hero-note'].classList.toggle('warn', r.clamped);
 
-    buildTable(cond, cfg);
-  }
-
-  function buildTable(cond, cfg){
-    var wot = wotMP(cond.pa, cfg);
-    var maxPct = pctFromMP(wot, state.rpm, cond.pa, cond.oat, cfg);
-    var rows = TABLE_ROWS.map(function(p){ return p; });
-    if(rows.indexOf(state.pct) === -1){
-      rows.push(state.pct);
-      rows.sort(function(a,b){return a-b;});
-    }
-    var html = '';
-    rows.forEach(function(p){
-      var reachable = p <= maxPct + 0.05;
-      var shownPct = reachable ? p : maxPct;
-      var mp = Math.min(mpFromPct(shownPct, state.rpm, cond.pa, cond.oat, cfg), wot);
-      var ffr = fuelGPH(shownPct, cfg.bsfcRich, cfg);
-      var ffl = fuelGPH(shownPct, cfg.bsfcLean, cfg);
-      var ias = iasFromPct(shownPct, cfg);
-      var tas = tasFromIas(ias, cond.da);
-      var cls = (p===state.pct ? 'current' : '') + (reachable ? '' : ' unreachable');
-      var label = reachable
-        ? p
-        : p + ' <span class="pill warn">max ' + fmt(maxPct,0) + '%</span>';
-      html += '<tr class="'+cls+'">' +
-        '<td>'+label+'</td>' +
-        '<td class="num">'+fmt(mp,1)+'</td>' +
-        '<td class="num">'+fmt(ffr,1)+'</td>' +
-        '<td class="num">'+fmt(ffl,1)+'</td>' +
-        '<td class="num">'+fmt(ias,0)+'</td>' +
-        '<td class="num">'+fmt(tas,0)+'</td>' +
+    var rows = '';
+    PCTS.forEach(function(p){
+      var rr = lookup(p, cond.pa, cond.isaDev);
+      var iias = rr.tasKt * Math.sqrt(densityRatio(cond.da));
+      var cls = p===state.pct ? 'current' : '';
+      rows += '<tr class="'+cls+'">' +
+        '<td>'+p+'%</td>' +
+        '<td class="num">'+rr.rpm+'</td>' +
+        '<td class="num">'+fmt(rr.mp,1)+'</td>' +
+        '<td class="num">'+fmt(rr.ffGph,1)+'</td>' +
+        '<td class="num">'+fmt(rr.tasKt,0)+'</td>' +
+        '<td class="num">'+fmt(iias,0)+'</td>' +
         '</tr>';
     });
-    els['table-body'].innerHTML = html;
-  }
-
-  function fillCalibFields(){
-    els['c-bhp'].value = state.cfg.bhp;
-    els['c-rpm'].value = state.cfg.rpm;
-    els['c-mp'].value = state.cfg.mp;
-    els['c-bsfc-rich'].value = state.cfg.bsfcRich;
-    els['c-bsfc-lean'].value = state.cfg.bsfcLean;
-    els['c-fuelwt'].value = state.cfg.fuelWt;
-    els['c-ias-ref'].value = state.cfg.iasRef;
-    els['c-pct-ref'].value = state.cfg.pctRef;
-  }
-
-  function readCalibFields(){
-    state.cfg = {
-      bhp: parseFloat(els['c-bhp'].value) || DEFAULTS.bhp,
-      rpm: parseFloat(els['c-rpm'].value) || DEFAULTS.rpm,
-      mp: parseFloat(els['c-mp'].value) || DEFAULTS.mp,
-      bsfcRich: parseFloat(els['c-bsfc-rich'].value) || DEFAULTS.bsfcRich,
-      bsfcLean: parseFloat(els['c-bsfc-lean'].value) || DEFAULTS.bsfcLean,
-      fuelWt: parseFloat(els['c-fuelwt'].value) || DEFAULTS.fuelWt,
-      iasRef: parseFloat(els['c-ias-ref'].value) || DEFAULTS.iasRef,
-      pctRef: parseFloat(els['c-pct-ref'].value) || DEFAULTS.pctRef
-    };
-    saveCfg();
-    recompute();
+    els['table-body'].innerHTML = rows;
   }
 
   els['in-elev'].addEventListener('input', recompute);
   els['in-altimeter'].addEventListener('input', recompute);
   els['in-oat'].addEventListener('input', recompute);
-  els['in-power'].addEventListener('input', function(){
-    state.pct = parseInt(els['in-power'].value, 10);
-    recompute();
-  });
-  els['btn-save'].addEventListener('click', readCalibFields);
-  els['btn-reset'].addEventListener('click', function(){
-    state.cfg = Object.assign({}, DEFAULTS);
-    saveCfg();
-    fillCalibFields();
-    recompute();
-  });
 
-  buildRpmButtons();
-  fillCalibFields();
+  buildPctButtons();
   recompute();
 
   if('serviceWorker' in navigator){

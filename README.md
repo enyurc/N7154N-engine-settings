@@ -18,21 +18,18 @@ app after the first load) — no App Store submission needed.
 
 ## How it works
 
-The calculator is a physics-based model, not a transcription of the POH:
+RPM, manifold pressure, fuel flow, and TAS are interpolated directly from the certified
+Beechcraft **Cruise Power Settings** tables — Debonair C33 / Bonanza E33 & F33 Pilot's
+Operating Handbook, Section V Performance, pages 5-21 through 5-23 (August 1982 revision),
+at 55%, 65%, and 75% maximum continuous power, 2950 lb average cruise weight. Each table
+is a grid of pressure altitude (SL–16,000 ft) × ISA deviation (−20°C / standard / +20°C);
+the app bilinearly interpolates within that grid for whatever field elevation, altimeter
+setting, and OAT you enter, and clamps (with a warning) outside that range.
 
-- `%BHP ≈ 100 × (RPM / RPM_rated) × (MP / MP_rated) × (T_std / T_actual)` — the standard
-  linear RPM×MP approximation for a normally-aspirated engine, with a density/temperature
-  correction.
-- Full-throttle MP available at altitude is derived from the standard atmosphere pressure
-  lapse rate.
-- Fuel flow = `%BHP × rated BHP × BSFC ÷ fuel weight`, for both rich (best power) and
-  leaned (best economy) mixtures.
-- Indicated airspeed scales with the cube root of % power (power ∝ V³ in the cruise
-  regime); true airspeed is IAS corrected for density altitude.
+Indicated airspeed is **not** tabulated in the POH chart — it's derived from the tabulated
+TAS using the standard density-altitude correction (KIAS ≈ KTAS × √σ), which ignores
+position error and is only an estimate.
 
-All the underlying constants (rated BHP/RPM/MP, BSFC, reference airspeed) are editable
-in the **Aircraft profile** panel in the app and saved to the device. The shipped
-defaults are reasonable estimates for a stock IO-470-K — **not** transcribed from
-N7154N's current POH, since the actual certified charts weren't available while building
-this. Open the profile panel and enter your POH's real numbers to calibrate it exactly,
-and always cross-check any setting against the current POH before flight.
+The tables were transcribed from a scanned copy of the POH. Spot-check the numbers against
+your own copy, and always cross-check any setting against N7154N's current POH and actual
+weight before using it in flight.
