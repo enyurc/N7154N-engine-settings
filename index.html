@@ -1498,28 +1498,34 @@
   function n3DensityAlt(paFt, oatC){ return paFt + 120*(oatC - n3IsaC(paFt)); }
 
   var N3_PCTS = [55,60,65,70,75];
+  // Each line traced directly off the chart at fine resolution across a wide
+  // density-altitude span (roughly 0-8,200 ft) and independently fit --
+  // residuals under 2.5 RPM against the fit for every line. 65%'s intercept
+  // is anchored to reproduce the chart's own worked example exactly
+  // (5,540 ft DA -> 2,440 RPM); the other four use their fitted intercept
+  // directly, all within a couple RPM of it regardless.
   var N3_RPM = {
-    55:{rpm0:2179, rate:19.2},
-    60:{rpm0:2262, rate:18.4},
-    65:{rpm0:2321, rate:21.3},
-    70:{rpm0:2399, rate:21.1},
-    75:{rpm0:2477, rate:20.2}
+    55:{rpm0:2178.8, rate:19.06},
+    60:{rpm0:2262.9, rate:18.18},
+    65:{rpm0:2329.9, rate:19.88},
+    70:{rpm0:2405.6, rate:20.21},
+    75:{rpm0:2479.0, rate:19.67}
   };
   // Airspeed chart is visibly bowed (TAS rises with altitude, then falls
   // off past each line's best-power altitude), but each line was traced
-  // directly off the chart across a wide density-altitude span (roughly
-  // 350-6,200 ft) and came back essentially perfectly linear over that
-  // range (largest residual 0.07 kt against a least-squares fit) -- so
-  // each %power line gets its own fitted rate rather than sharing one.
-  // (An earlier version anchored 65%/75% off the 55% line with a shared
-  // power-to-speed cube-law rate; that underestimated both -- by about
-  // 7 kt at 65% and 10 kt at 75% -- and has been replaced with these
-  // directly-traced fits.)
+  // directly off the chart at fine resolution across a wide density-altitude
+  // span (roughly 100-9,700 ft) and came back essentially perfectly linear
+  // over that whole range (largest residual 0.8 kt, typically under 0.25 kt,
+  // against a least-squares fit) -- so each %power line gets its own fitted
+  // rate rather than sharing one. (An earlier version anchored 65%/75% off
+  // the 55% line with a shared power-to-speed cube-law rate; that
+  // underestimated both -- by about 7 kt at 65% and 10 kt at 75% -- and has
+  // been replaced with these directly-traced fits.)
   var N3_TAS_DA_REF = 4873.6;
   var N3_TAS = {
-    55:{tasRef:100.9, rate:1.235},
-    65:{tasRef:114.3, rate:1.455},
-    75:{tasRef:123.5, rate:1.642}
+    55:{tasRef:100.9, rate:1.227},
+    65:{tasRef:114.3, rate:1.466},
+    75:{tasRef:123.5, rate:1.63}
   };
   var N3_FF = { 55:{best:7.8,econ:6.3}, 65:{best:9.0,econ:7.6}, 75:{best:10.5,econ:8.8} };
   var N3_DA_MIN = 0, N3_DA_MAX = 10000;
