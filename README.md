@@ -82,13 +82,23 @@ against their own worked examples, both of which the app's model reproduces exac
 Reading values off a hand-drawn nomograph is inherently less precise than transcribing a
 printed table, so **every value on the N3008U page is labeled "estimated."** The chart is
 built wheel fairings installed and prints "subtract 8 kts if removed" — a **Wheel
-Fairings** switch next to the % power dial lets you match N3008U's actual configuration,
-and the true/indicated airspeed figures apply that flat 8 kt offset accordingly. Fuel flow
-(best power, leaned per Lycoming instructions) comes directly from the
-POH's fuel-flow table — 7.8/9.0/10.5 GPH at 55/65/75% power — which isn't
-altitude/temperature dependent in the source data. The model covers roughly sea
-level–10,000 ft pressure altitude; the real airspeed curves fold back over past their
-best-power altitude, so the app doesn't attempt to model beyond that range.
+Fairings** switch next to the % power dial (defaults to **removed**, N3008U's actual
+configuration) applies that flat 8 kt offset to true/indicated airspeed accordingly. Fuel
+flow (best power, leaned per Lycoming instructions) comes directly from the POH's
+fuel-flow table — 7.8/9.0/10.5 GPH at 55/65/75% power — which isn't altitude/temperature
+dependent in the source data. The digitized model covers roughly sea level–10,000 ft
+pressure altitude; the real airspeed curves fold back over past their best-power altitude,
+so the app doesn't attempt to model beyond that range.
+
+**% power runs 10–75%, matching N7154N's dial** — but both POH fan-line charts stop at
+55%. Below that (shaded red on the dial, like N7154N's own sub-40% zone) isn't digitized
+chart data at all; it's extrapolated from the certified 55% chart line using basic
+propulsion physics, anchored to be continuous at the 55% boundary: RPM follows the
+fixed-pitch propeller affinity law (BHP ∝ RPM³ at a roughly constant advance ratio), true
+airspeed follows the same power-to-speed cube relationship already used to anchor the
+65%/75% airspeed lines to the chart's one solid data point, and fuel flow scales linearly
+with % power (roughly constant BSFC). It's a materially rougher estimate than the
+digitized 55–75% range above it.
 
 Always cross-check any setting against N3008U's current POH and actual weight before
 using it in flight.

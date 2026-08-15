@@ -731,7 +731,7 @@
         <div class="cond-cell">
           <span class="dial-caption">% Power</span>
           <div class="gauge dial" id="dial-n3-pct" tabindex="0" role="slider"
-               aria-label="Desired percent power" aria-valuemin="55" aria-valuemax="75" aria-valuenow="65">
+               aria-label="Desired percent power" aria-valuemin="10" aria-valuemax="75" aria-valuenow="65">
             <svg viewBox="0 0 100 100">
               <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
               <g class="dial-ticks"></g>
@@ -751,11 +751,11 @@
         <div class="cond-cell switch-cell">
           <span class="dial-caption">Wheel Fairings</span>
           <label class="switch">
-            <input type="checkbox" id="n3-fairings-toggle" checked
+            <input type="checkbox" id="n3-fairings-toggle"
                    aria-label="Wheel fairings installed">
             <span class="switch-track"><span class="switch-thumb"></span></span>
           </label>
-          <span class="switch-state on" id="n3-fairings-state">Installed</span>
+          <span class="switch-state" id="n3-fairings-state">Removed</span>
         </div>
 
       </div>
@@ -826,8 +826,17 @@
       2,440 RPM; and 5,500 ft PA, 30&deg;F, 55% power &rarr; 101 KTAS &mdash; both reproduced exactly). Reading
       values off a hand&#8209;drawn nomograph is inherently less precise than the tabulated E33 data, so treat
       every number on this page as <b>estimated</b>. The chart is built <b>wheel fairings installed</b> and
-      prints "subtract 8 kts if removed" &mdash; use the <b>Wheel Fairings</b> switch above to match N3008U's
-      actual configuration, and the true airspeed (and derived IAS) figures adjust by that flat 8 kt.</p>
+      prints "subtract 8 kts if removed" &mdash; the <b>Wheel Fairings</b> switch above defaults to
+      <b>removed</b> (N3008U's actual configuration) and applies that flat 8 kt to true airspeed, and to the
+      indicated airspeed derived from it, whenever it's off.</p>
+      <p><b>Below 55% power</b> (shaded red on the % power dial, 10&ndash;40%) is off both POH charts entirely
+      &mdash; their fan lines simply stop at 55%. Rather than digitized chart data, this range is
+      <b>extrapolated with basic propulsion physics</b>, anchored to land exactly on the certified 55% chart
+      line at that boundary: RPM follows the fixed&#8209;pitch propeller affinity law (BHP proportional to
+      RPM&sup3; at a roughly constant advance ratio), true airspeed follows the same power&#8209;to&#8209;speed
+      cube relationship already used to anchor the 65%/75% airspeed lines to the chart's single solid data
+      point, and fuel flow scales linearly with % power (roughly constant BSFC). This is a materially rougher
+      estimate than the digitized 55&ndash;75% range above it.</p>
       <p><b>Fuel flow</b> (best power mixture, leaned per Lycoming instructions) comes directly from the POH's
       fuel&#8209;flow table: 7.8/9.0/10.5 GPH at 55/65/75% power, with 6.3/7.6/8.8 GPH shown as the best&#8209;economy
       alternative &mdash; this table isn't altitude/temperature dependent in the POH, so neither is this app's figure.</p>
@@ -1530,27 +1539,59 @@
   // installed" and prints "SUBTRACT 8 KTS IF REMOVED" right on the chart --
   // a flat TAS offset, not something that varies with altitude or power.
   var FAIRINGS_TAS_PENALTY = 8;
+  var N3_CHART_MIN_PCT = 55;
 
-  function n3Compute(pct, cond){
-    var daClamped = clamp(cond.da, N3_DA_MIN, N3_DA_MAX);
+  function n3RpmChart(pct, daClamped){
     var rpm0 = n3Interp5(N3_RPM, N3_PCTS, 'rpm0', pct);
     var rate = n3Interp5(N3_RPM, N3_PCTS, 'rate', pct);
-    var rpm = rpm0 + rate*daClamped/1000;
-
+    return rpm0 + rate*daClamped/1000;
+  }
+  function n3TasChart(pct, daClamped){
     function tasFor(p){ return N3_TAS[p].tasRef + N3_TAS_RATE*(daClamped-N3_TAS_DA_REF)/1000; }
-    var tasKt = n3Interp3(tasFor(55), tasFor(65), tasFor(75), pct);
-    if(!cond.fairingsInstalled) tasKt -= FAIRINGS_TAS_PENALTY;
-    var ff = n3FF(pct);
-
-    return {
-      rpm: rpm, tasKt: tasKt, ffGph: ff.best, ffEcon: ff.econ,
-      daClamped: cond.da !== daClamped
-    };
+    return n3Interp3(tasFor(55), tasFor(65), tasFor(75), pct);
   }
   function n3FF(pct){
     return {
       best: n3Interp3(N3_FF[55].best, N3_FF[65].best, N3_FF[75].best, pct),
       econ: n3Interp3(N3_FF[55].econ, N3_FF[65].econ, N3_FF[75].econ, pct)
+    };
+  }
+
+  // Below 55% power is off both charts entirely (their fan lines stop at
+  // 55%), so this isn't digitized data -- it's extrapolated from the
+  // certified-chart 55% line using basic propulsion physics, anchored to
+  // land exactly on that line at pct=55:
+  //  - RPM: the propeller affinity law for a fixed-pitch prop at a roughly
+  //    constant advance ratio, BHP proportional to RPM^3, so
+  //    RPM(pct) = RPM(55%) * (pct/55)^(1/3).
+  //  - TAS: the same power-to-speed cube relationship already used above
+  //    to anchor the 65/75% airspeed lines to the one solid (55%) data
+  //    point, TAS(pct) = TAS(55%) * (pct/55)^(1/3).
+  //  - Fuel flow: roughly constant BSFC, so GPH scales linearly with %power.
+  // This is a materially rougher estimate than the digitized 55-75% range
+  // above it -- treat it accordingly.
+  function n3Compute(pct, cond){
+    var daClamped = clamp(cond.da, N3_DA_MIN, N3_DA_MAX);
+    var rpm, tasKt, ff;
+    if(pct >= N3_CHART_MIN_PCT){
+      rpm = n3RpmChart(pct, daClamped);
+      tasKt = n3TasChart(pct, daClamped);
+      ff = n3FF(pct);
+    } else {
+      var rpm55 = n3RpmChart(N3_CHART_MIN_PCT, daClamped);
+      var tas55 = n3TasChart(N3_CHART_MIN_PCT, daClamped);
+      var ff55 = n3FF(N3_CHART_MIN_PCT);
+      var k = Math.pow(pct/N3_CHART_MIN_PCT, 1/3);
+      rpm = rpm55 * k;
+      tasKt = tas55 * k;
+      ff = { best: ff55.best*(pct/N3_CHART_MIN_PCT), econ: ff55.econ*(pct/N3_CHART_MIN_PCT) };
+    }
+    if(!cond.fairingsInstalled) tasKt -= FAIRINGS_TAS_PENALTY;
+
+    return {
+      rpm: rpm, tasKt: tasKt, ffGph: ff.best, ffEcon: ff.econ,
+      daClamped: cond.da !== daClamped,
+      belowChart: pct < N3_CHART_MIN_PCT
     };
   }
 
@@ -1610,12 +1651,17 @@
     n3Els['n3-bezel-pill'].textContent = 'estimated';
     n3Els['n3-bezel-pill'].className = 'pill warn';
 
-    var note = 'Digitized from the PA-28-181 POH performance charts (Figures 5-18 and 5-20) -- treat as an estimate, not a certified value.';
+    var note;
+    if(res.belowChart){
+      note = 'Below 55% power (shaded red on the dial) is off both POH charts entirely -- extrapolated from the certified 55% line using propeller and airspeed cube-law physics, not digitized. Treat it as a rough estimate.';
+    } else {
+      note = 'Digitized from the PA-28-181 POH performance charts (Figures 5-18 and 5-20) -- treat as an estimate, not a certified value.';
+    }
     if(res.daClamped){
       note += ' Conditions are outside the chart’s density-altitude range, clamped to the nearest edge.';
     }
     n3Els['n3-hero-note'].textContent = note;
-    n3Els['n3-hero-note'].classList.toggle('warn', false);
+    n3Els['n3-hero-note'].classList.toggle('warn', res.belowChart);
 
     var rows = '';
     N3_PCTS.forEach(function(p){
@@ -1636,7 +1682,7 @@
   n3PopulateAltitude();
   n3OatDial = setupDial('n3-oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, n3Recompute);
   n3AltimeterDial = setupDial('n3-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, n3Recompute);
-  n3PctDial = setupDial('n3-pct', {min:55,max:75,step:5,decimals:0,tickStep:5,value:65}, n3Recompute);
+  n3PctDial = setupDial('n3-pct', {min:10,max:75,step:5,decimals:0,tickStep:5,value:65,alertRange:[10,40]}, n3Recompute);
 
   var n3FairingsToggle = document.getElementById('n3-fairings-toggle');
   var n3FairingsStateEl = document.getElementById('n3-fairings-state');
