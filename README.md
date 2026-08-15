@@ -80,9 +80,11 @@ against their own worked examples, both of which the app's model reproduces exac
 - 5,500 ft pressure altitude, 30°F, 55% power → 101 KTAS
 
 Reading values off a hand-drawn nomograph is inherently less precise than transcribing a
-printed table, so **every value on the N3008U page is labeled "estimated."** The airspeed
-figures assume wheel fairings installed, per the chart — subtract 8 kt if flying without
-them. Fuel flow (best power, leaned per Lycoming instructions) comes directly from the
+printed table, so **every value on the N3008U page is labeled "estimated."** The chart is
+built wheel fairings installed and prints "subtract 8 kts if removed" — a **Wheel
+Fairings** switch next to the % power dial lets you match N3008U's actual configuration,
+and the true/indicated airspeed figures apply that flat 8 kt offset accordingly. Fuel flow
+(best power, leaned per Lycoming instructions) comes directly from the
 POH's fuel-flow table — 7.8/9.0/10.5 GPH at 55/65/75% power — which isn't
 altitude/temperature dependent in the source data. The model covers roughly sea
 level–10,000 ft pressure altitude; the real airspeed curves fold back over past their

@@ -270,6 +270,30 @@
   }
   .preset-btn:hover{background:var(--surface-2);}
   .preset-btn:active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+
+  .switch-cell{display:flex;flex-direction:column;align-items:center;gap:.55rem;}
+  .switch{position:relative;display:inline-block;width:60px;height:32px;flex:none;}
+  .switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+  .switch-track{
+    position:absolute;inset:0;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    transition:background-color .15s, border-color .15s;
+    pointer-events:none;
+  }
+  .switch-thumb{
+    position:absolute;top:2px;left:2px;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--ink-dim);
+    box-shadow:0 1px 3px rgba(0,0,0,.35);
+    transition:transform .15s, background-color .15s;
+  }
+  .switch input:checked ~ .switch-track{background:var(--accent);border-color:var(--accent);}
+  .switch input:checked ~ .switch-track .switch-thumb{transform:translateX(28px);background:var(--accent-ink);}
+  .switch input:focus-visible ~ .switch-track{box-shadow:0 0 0 3px var(--accent);}
+  .switch-state{font-size:.82rem;font-weight:700;color:var(--ink-dim);}
+  .switch-state.on{color:var(--accent);}
   .pill{
     display:inline-block;
     font-size:.68rem;
@@ -724,6 +748,16 @@
           </div>
         </div>
 
+        <div class="cond-cell switch-cell">
+          <span class="dial-caption">Wheel Fairings</span>
+          <label class="switch">
+            <input type="checkbox" id="n3-fairings-toggle" checked
+                   aria-label="Wheel fairings installed">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+          <span class="switch-state on" id="n3-fairings-state">Installed</span>
+        </div>
+
       </div>
 
       <div class="bezel">
@@ -791,8 +825,9 @@
       altitude, calibrated against the charts' own worked examples (5,500 ft PA, 40&deg;F, 65% power &rarr;
       2,440 RPM; and 5,500 ft PA, 30&deg;F, 55% power &rarr; 101 KTAS &mdash; both reproduced exactly). Reading
       values off a hand&#8209;drawn nomograph is inherently less precise than the tabulated E33 data, so treat
-      every number on this page as <b>estimated</b>, and the true airspeed figures assume <b>wheel fairings
-      installed</b> per the chart &mdash; subtract 8 kt if N3008U is currently flying without them.</p>
+      every number on this page as <b>estimated</b>. The chart is built <b>wheel fairings installed</b> and
+      prints "subtract 8 kts if removed" &mdash; use the <b>Wheel Fairings</b> switch above to match N3008U's
+      actual configuration, and the true airspeed (and derived IAS) figures adjust by that flat 8 kt.</p>
       <p><b>Fuel flow</b> (best power mixture, leaned per Lycoming instructions) comes directly from the POH's
       fuel&#8209;flow table: 7.8/9.0/10.5 GPH at 55/65/75% power, with 6.3/7.6/8.8 GPH shown as the best&#8209;economy
       alternative &mdash; this table isn't altitude/temperature dependent in the POH, so neither is this app's figure.</p>
@@ -1491,6 +1526,11 @@
     var t2 = (pct-65)/10; return v65 + t2*(v75-v65);
   }
 
+  // The Figure 5-20 airspeed chart is explicitly built "wheel fairings
+  // installed" and prints "SUBTRACT 8 KTS IF REMOVED" right on the chart --
+  // a flat TAS offset, not something that varies with altitude or power.
+  var FAIRINGS_TAS_PENALTY = 8;
+
   function n3Compute(pct, cond){
     var daClamped = clamp(cond.da, N3_DA_MIN, N3_DA_MAX);
     var rpm0 = n3Interp5(N3_RPM, N3_PCTS, 'rpm0', pct);
@@ -1499,6 +1539,7 @@
 
     function tasFor(p){ return N3_TAS[p].tasRef + N3_TAS_RATE*(daClamped-N3_TAS_DA_REF)/1000; }
     var tasKt = n3Interp3(tasFor(55), tasFor(65), tasFor(75), pct);
+    if(!cond.fairingsInstalled) tasKt -= FAIRINGS_TAS_PENALTY;
     var ff = n3FF(pct);
 
     return {
@@ -1540,7 +1581,8 @@
     var oat = n3OatDial.get();
     var pa = pressureAltitude(altitude, altimeter);
     var da = n3DensityAlt(pa, oat);
-    return {altitude:altitude, altimeter:altimeter, oat:oat, pa:pa, da:da};
+    var fairingsInstalled = document.getElementById('n3-fairings-toggle').checked;
+    return {altitude:altitude, altimeter:altimeter, oat:oat, pa:pa, da:da, fairingsInstalled:fairingsInstalled};
   }
 
   function n3Recompute(){
@@ -1561,7 +1603,8 @@
     n3Els['n3-hero-ff'].innerHTML = fmt(res.ffGph,1) + '<span class="unit">GPH</span>';
     n3Els['n3-hero-ff-econ'].textContent = fmt(res.ffEcon,1) + ' GPH best economy';
     n3Els['n3-hero-tas'].innerHTML = fmt(res.tasKt,0) + '<span class="unit">KTAS</span>';
-    n3Els['n3-hero-tas-note'].textContent = 'wheel fairings installed; -8 kt if removed';
+    n3Els['n3-hero-tas-note'].textContent = cond.fairingsInstalled ?
+      'wheel fairings installed' : 'fairings removed − 8 kt applied';
     n3Els['n3-hero-ias'].innerHTML = fmt(ias,0) + '<span class="unit">KIAS</span>';
 
     n3Els['n3-bezel-pill'].textContent = 'estimated';
@@ -1594,6 +1637,14 @@
   n3OatDial = setupDial('n3-oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, n3Recompute);
   n3AltimeterDial = setupDial('n3-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, n3Recompute);
   n3PctDial = setupDial('n3-pct', {min:55,max:75,step:5,decimals:0,tickStep:5,value:65}, n3Recompute);
+
+  var n3FairingsToggle = document.getElementById('n3-fairings-toggle');
+  var n3FairingsStateEl = document.getElementById('n3-fairings-state');
+  n3FairingsToggle.addEventListener('change', function(){
+    n3FairingsStateEl.textContent = n3FairingsToggle.checked ? 'Installed' : 'Removed';
+    n3FairingsStateEl.classList.toggle('on', n3FairingsToggle.checked);
+    n3Recompute();
+  });
 
   document.querySelectorAll('#n3-preset-col .preset-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
