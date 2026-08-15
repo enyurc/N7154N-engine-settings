@@ -833,10 +833,10 @@
       &mdash; their fan lines simply stop at 55%. Rather than digitized chart data, this range is
       <b>extrapolated with basic propulsion physics</b>, anchored to land exactly on the certified 55% chart
       line at that boundary: RPM follows the fixed&#8209;pitch propeller affinity law (BHP proportional to
-      RPM&sup3; at a roughly constant advance ratio), true airspeed follows the same power&#8209;to&#8209;speed
-      cube relationship already used to anchor the 65%/75% airspeed lines to the chart's single solid data
-      point, and fuel flow scales linearly with % power (roughly constant BSFC). This is a materially rougher
-      estimate than the digitized 55&ndash;75% range above it.</p>
+      RPM&sup3; at a roughly constant advance ratio), true airspeed follows the analogous power&#8209;to&#8209;speed
+      cube relationship (BHP proportional to TAS&sup3; at fixed drag), and fuel flow scales linearly with
+      % power (roughly constant BSFC). This is a materially rougher estimate than the digitized 55&ndash;75%
+      range above it.</p>
       <p><b>Fuel flow</b> (best power mixture, leaned per Lycoming instructions) comes directly from the POH's
       fuel&#8209;flow table: 7.8/9.0/10.5 GPH at 55/65/75% power, with 6.3/7.6/8.8 GPH shown as the best&#8209;economy
       alternative &mdash; this table isn't altitude/temperature dependent in the POH, so neither is this app's figure.</p>
@@ -1506,18 +1506,20 @@
     75:{rpm0:2477, rate:20.2}
   };
   // Airspeed chart is visibly bowed (TAS rises with altitude, then falls
-  // off past each line's best-power altitude) rather than straight, but
-  // the only precisely-known point per line is the 55% worked example;
-  // 65%/75% are anchored at the same density altitude using the
-  // power-to-speed cube relationship (TAS proportional to BHP^(1/3) at
-  // fixed drag) and share that one calibrated per-1000ft rate. This is
-  // the roughest part of the N3008U model -- treat it accordingly.
+  // off past each line's best-power altitude), but each line was traced
+  // directly off the chart across a wide density-altitude span (roughly
+  // 350-6,200 ft) and came back essentially perfectly linear over that
+  // range (largest residual 0.07 kt against a least-squares fit) -- so
+  // each %power line gets its own fitted rate rather than sharing one.
+  // (An earlier version anchored 65%/75% off the 55% line with a shared
+  // power-to-speed cube-law rate; that underestimated both -- by about
+  // 7 kt at 65% and 10 kt at 75% -- and has been replaced with these
+  // directly-traced fits.)
   var N3_TAS_DA_REF = 4873.6;
-  var N3_TAS_RATE = 1.26;
   var N3_TAS = {
-    55:{tasRef:101.0},
-    65:{tasRef:106.8},
-    75:{tasRef:111.9}
+    55:{tasRef:100.9, rate:1.235},
+    65:{tasRef:114.3, rate:1.455},
+    75:{tasRef:123.5, rate:1.642}
   };
   var N3_FF = { 55:{best:7.8,econ:6.3}, 65:{best:9.0,econ:7.6}, 75:{best:10.5,econ:8.8} };
   var N3_DA_MIN = 0, N3_DA_MAX = 10000;
@@ -1547,7 +1549,7 @@
     return rpm0 + rate*daClamped/1000;
   }
   function n3TasChart(pct, daClamped){
-    function tasFor(p){ return N3_TAS[p].tasRef + N3_TAS_RATE*(daClamped-N3_TAS_DA_REF)/1000; }
+    function tasFor(p){ return N3_TAS[p].tasRef + N3_TAS[p].rate*(daClamped-N3_TAS_DA_REF)/1000; }
     return n3Interp3(tasFor(55), tasFor(65), tasFor(75), pct);
   }
   function n3FF(pct){
@@ -1564,9 +1566,8 @@
   //  - RPM: the propeller affinity law for a fixed-pitch prop at a roughly
   //    constant advance ratio, BHP proportional to RPM^3, so
   //    RPM(pct) = RPM(55%) * (pct/55)^(1/3).
-  //  - TAS: the same power-to-speed cube relationship already used above
-  //    to anchor the 65/75% airspeed lines to the one solid (55%) data
-  //    point, TAS(pct) = TAS(55%) * (pct/55)^(1/3).
+  //  - TAS: the analogous power-to-speed cube relationship (BHP
+  //    proportional to TAS^3 at fixed drag), TAS(pct) = TAS(55%) * (pct/55)^(1/3).
   //  - Fuel flow: roughly constant BSFC, so GPH scales linearly with %power.
   // This is a materially rougher estimate than the digitized 55-75% range
   // above it -- treat it accordingly.

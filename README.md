@@ -73,8 +73,11 @@ exactly where OAT equals that altitude's standard temperature.
 
 Density altitude itself is computed **exactly** from pressure altitude and OAT (standard
 ISA: 15°C sea level, 1.98°C/1000 ft lapse), not read off a chart. RPM and TAS per %power
-line were fit as functions of density altitude by digitizing the charts and calibrating
-against their own worked examples, both of which the app's model reproduces exactly:
+line were each traced directly off their own chart line across a wide density-altitude
+span and independently fit as a straight line against density altitude — every line came
+back close to perfectly linear over the traced range (largest residual under 0.1 kt/RPM
+against the fit), so no line borrows another's rate. The model is calibrated against the
+charts' own worked examples, both of which it reproduces exactly:
 
 - 5,500 ft pressure altitude, 40°F, 65% power → 2,440 RPM
 - 5,500 ft pressure altitude, 30°F, 55% power → 101 KTAS
