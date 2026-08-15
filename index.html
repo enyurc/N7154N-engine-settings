@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>N7154N Power Settings</title>
-<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza, IO-470-K), interpolated from the aircraft's certified POH cruise power tables.">
+<title>Aircraft Power Settings</title>
+<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza) and N3008U (Piper PA-28-181 Archer II), interpolated from each aircraft's certified POH performance charts.">
 <meta name="theme-color" content="#12161B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="N7154N Power">
+<meta name="apple-mobile-web-app-title" content="Aircraft Power">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png">
@@ -113,6 +113,17 @@
     border:1px solid var(--border);
     color:var(--ink-dim);
   }
+
+  .tail-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;}
+  .plane-tabs{display:flex;gap:.4rem;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:.2rem;}
+  .plane-tab{
+    border:0;background:transparent;color:var(--ink-dim);
+    font-size:.76rem;font-weight:700;letter-spacing:.03em;
+    padding:.4rem .85rem;border-radius:999px;cursor:pointer;touch-action:manipulation;
+  }
+  .plane-tab.active{background:var(--accent);color:var(--accent-ink);}
+  .page{display:none;}
+  .page.active{display:block;}
 
   section{padding:1.4rem 0;border-bottom:1px solid var(--border);}
   section:last-of-type{border-bottom:none;}
@@ -375,13 +386,18 @@
 </style>
 </head>
 <body>
-
 <header class="top">
   <div class="wrap">
-    <p class="tail">N7154N &middot; Naperville Flying Club</p>
-    <h1>Power Setting Calculator</h1>
-    <p class="subhead">1968 Beechcraft E33 Bonanza &middot; Continental IO&#8209;470&#8209;K</p>
-    <div class="badges">
+    <div class="tail-row">
+      <p class="tail" id="tail-label">N7154N &middot; Naperville Flying Club</p>
+      <div class="plane-tabs" role="tablist" aria-label="Aircraft">
+        <button type="button" class="plane-tab active" id="tab-n7154n" data-plane="n7154n">N7154N</button>
+        <button type="button" class="plane-tab" id="tab-n3008u" data-plane="n3008u">N3008U</button>
+      </div>
+    </div>
+    <h1 id="page-h1">Power Setting Calculator</h1>
+    <p class="subhead" id="page-subhead">1968 Beechcraft E33 Bonanza &middot; Continental IO&#8209;470&#8209;K</p>
+    <div class="badges" id="page-badges">
       <span class="badge">225 BHP rated @ 2600 RPM</span>
       <span class="badge">POH Section V, 8/1982</span>
       <span class="badge">2950 lb avg cruise wt</span>
@@ -390,6 +406,8 @@
 </header>
 
 <div class="wrap">
+
+<div class="page active" id="page-n7154n">
 
   <section id="conditions">
     <p class="section-label">Conditions</p>
@@ -605,7 +623,200 @@
     </div>
   </section>
 
-  <footer>Built for N7154N &middot; works offline once installed</footer>
+</div>
+
+<div class="page" id="page-n3008u">
+
+  <section id="n3-conditions">
+    <p class="section-label">Conditions</p>
+    <div class="card" id="n3-conditions-card">
+      <div class="cond-grid">
+
+        <div class="cond-cell cond-altitude">
+          <span class="dial-caption">Altitude</span>
+          <div class="gauge select-face" id="n3-altitude-face">
+            <span class="select-value"><span id="n3-altitude-display">6,000</span></span>
+            <span class="dial-unit">FT</span>
+            <span class="select-chevron">&#9662;</span>
+            <select id="n3-in-altitude" class="native-select" aria-label="Altitude"></select>
+          </div>
+          <span class="dial-hint">pressure altitude corrected below</span>
+        </div>
+
+        <div class="cond-cell cond-temp">
+          <span class="dial-caption">Outside Air Temp</span>
+          <div class="gauge dial" id="dial-n3-oat" tabindex="0" role="slider"
+               aria-label="Outside air temperature" aria-valuemin="-40" aria-valuemax="40" aria-valuenow="15">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">15</span>
+              <span class="dial-unit">&deg;C</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n3-oat" data-dir="-1" aria-label="Decrease temperature">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n3-oat" data-dir="1" aria-label="Increase temperature">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell cond-altimeter">
+          <span class="dial-caption">Altimeter Setting</span>
+          <div class="gauge dial" id="dial-n3-altimeter" tabindex="0" role="slider"
+               aria-label="Altimeter setting" aria-valuemin="28" aria-valuemax="31" aria-valuenow="29.92">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">29.92</span>
+              <span class="dial-unit">inHg</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n3-altimeter" data-dir="-1" aria-label="Decrease altimeter setting">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n3-altimeter" data-dir="1" aria-label="Increase altimeter setting">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="derived-chips" id="n3-chips"></div>
+    </div>
+  </section>
+
+  <section id="n3-power">
+    <p class="section-label">Cruise power setting</p>
+    <div class="card">
+      <div class="power-grid">
+
+        <div class="cond-cell power-presets">
+          <span class="dial-caption">Presets</span>
+          <div class="preset-col" id="n3-preset-col">
+            <button type="button" class="preset-btn" data-pct="75">75%</button>
+            <button type="button" class="preset-btn" data-pct="65">65%</button>
+            <button type="button" class="preset-btn" data-pct="55">55%</button>
+          </div>
+        </div>
+
+        <div class="cond-cell">
+          <span class="dial-caption">% Power</span>
+          <div class="gauge dial" id="dial-n3-pct" tabindex="0" role="slider"
+               aria-label="Desired percent power" aria-valuemin="55" aria-valuemax="75" aria-valuenow="65">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">65</span>
+              <span class="dial-unit">% PWR</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n3-pct" data-dir="-1" aria-label="Decrease percent power">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n3-pct" data-dir="1" aria-label="Increase percent power">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bezel">
+        <p class="bezel-title">Computed setting <span class="pill" id="n3-bezel-pill"></span></p>
+        <div class="bezel-grid">
+          <div class="bezel-item">
+            <span class="lbl">Engine Speed</span>
+            <span class="val mono" id="n3-hero-rpm">&mdash;<span class="unit">RPM</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Fuel Flow</span>
+            <span class="val mono small" id="n3-hero-ff">&mdash;<span class="unit">GPH</span></span>
+            <span class="sub" id="n3-hero-ff-econ"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">True Airspeed</span>
+            <span class="val mono small" id="n3-hero-tas">&mdash;<span class="unit">KTAS</span></span>
+            <span class="sub" id="n3-hero-tas-note"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Indicated Airspeed</span>
+            <span class="val mono small" id="n3-hero-ias">&mdash;<span class="unit">KIAS</span></span>
+            <span class="sub">derived, not tabulated</span>
+          </div>
+        </div>
+        <p class="bezel-note" id="n3-hero-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="n3-table">
+    <p class="section-label">Chart-derived settings at these conditions</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>% Pwr</th>
+            <th>RPM</th>
+            <th>FF (GPH)</th>
+            <th>KTAS</th>
+            <th>KIAS</th>
+          </tr>
+        </thead>
+        <tbody id="n3-table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="n3-source">
+    <p class="section-label">Data source</p>
+    <details class="source" id="n3-source-details">
+      <summary>How these numbers are calculated <span class="chev">&#9656;</span></summary>
+      <p>N3008U is a Piper PA&#8209;28&#8209;181 Cherokee Archer II with a <b>fixed&#8209;pitch propeller</b> and
+      a Lycoming O&#8209;360 (180 BHP) &mdash; there's no manifold pressure gauge or independent RPM control:
+      you set power with the throttle, and engine speed is whatever results. So unlike N7154N, this page has a
+      single control (desired % power) and computes the RPM you should see, along with fuel flow and airspeed.</p>
+      <p><b>Density altitude</b> is computed exactly from pressure altitude and OAT using the standard formula
+      (DA = PA + 120&times;(OAT&deg;C &minus; ISA&deg;C at that pressure altitude)) &mdash; this part is exact,
+      not read off a chart.</p>
+      <p><b>RPM and true airspeed</b> are digitized from the two POH nomographs &mdash; <b>Figure 5&#8209;18
+      "Engine Performance"</b> and <b>Figure 5&#8209;20 "Speed Power &ndash; Performance Cruise,"</b> Section 5
+      Performance, Report VB&#8209;790 (issued 6/18/1976, revised 7/12/1977) &mdash; each a combined
+      density&#8209;altitude / performance carpet plot rather than a table of numbers. The app fits a straight
+      line to each of the 55/60/65/70/75% RPM curves and each of the 55/65/75% airspeed curves against density
+      altitude, calibrated against the charts' own worked examples (5,500 ft PA, 40&deg;F, 65% power &rarr;
+      2,440 RPM; and 5,500 ft PA, 30&deg;F, 55% power &rarr; 101 KTAS &mdash; both reproduced exactly). Reading
+      values off a hand&#8209;drawn nomograph is inherently less precise than the tabulated E33 data, so treat
+      every number on this page as <b>estimated</b>, and the true airspeed figures assume <b>wheel fairings
+      installed</b> per the chart &mdash; subtract 8 kt if N3008U is currently flying without them.</p>
+      <p><b>Fuel flow</b> (best power mixture, leaned per Lycoming instructions) comes directly from the POH's
+      fuel&#8209;flow table: 7.8/9.0/10.5 GPH at 55/65/75% power, with 6.3/7.6/8.8 GPH shown as the best&#8209;economy
+      alternative &mdash; this table isn't altitude/temperature dependent in the POH, so neither is this app's figure.</p>
+      <p><b>Indicated airspeed</b> is derived from TAS using the standard density&#8209;altitude correction
+      (KIAS &asymp; KTAS &times; &radic;&sigma;), same as the N7154N page &mdash; it ignores position error and
+      is only an estimate.</p>
+      <p>The chart (and this page) cover roughly <b>sea level&ndash;10,000 ft pressure altitude</b>; the airspeed
+      curves fold back over past their peak altitude on the real chart, so this page doesn't attempt to model
+      beyond that range.</p>
+    </details>
+  </section>
+
+  <section id="n3-notes">
+    <div class="disclaimer">
+      <span>&#9888;&#65039;</span>
+      <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check any power setting, RPM,
+      mixture, or airspeed figure against N3008U's current, complete Pilot's Operating Handbook and the
+      aircraft's actual weight before using it in flight.</span>
+    </div>
+  </section>
+
+</div>
+
+  <footer>Works offline once installed</footer>
 </div>
 
 <script>
@@ -1196,7 +1407,7 @@
     recompute();
   });
 
-  document.querySelectorAll('.preset-btn').forEach(function(btn){
+  document.querySelectorAll('#preset-col .preset-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var p = parseInt(btn.getAttribute('data-pct'), 10);
       rpmDial.set(DATA[p].rpm, true);
@@ -1207,6 +1418,229 @@
   });
 
   recompute();
+
+  // ============================================================
+  // N3008U -- Piper PA-28-181 Cherokee Archer II (fixed-pitch prop)
+  // ============================================================
+  //
+  // Digitized from two POH nomographs (Section 5 Performance, Report
+  // VB-790): Figure 5-18 "Engine Performance" (RPM vs density altitude,
+  // fan lines at 55/60/65/70/75% power) and Figure 5-20 "Speed Power -
+  // Performance Cruise" (true airspeed vs density altitude, fan lines at
+  // 55/65/75%). Both charts plot against an unlabeled shared vertical axis
+  // that turns out to be density altitude -- each pressure-altitude line
+  // is defined to cross the chart's "STD TEMP" reference exactly where
+  // OAT equals that altitude's standard temperature, which is the
+  // standard construction for this style of chart.
+  //
+  // Because a fixed-pitch prop has no independent manifold-pressure
+  // control, this page has a single input (% power) and computes RPM,
+  // fuel flow, and airspeed -- there's no MP dial or MP output here.
+  //
+  // Each %power fan line was fit as a straight line in density altitude
+  // (RPM chart) or anchored to a single altitude with a shared per-1000ft
+  // rate (airspeed chart, since only one solid data point -- the chart's
+  // own worked example -- was available per line beyond the fan lines'
+  // approximate slope). Both are calibrated against the charts' own two
+  // worked examples, which are reproduced exactly by this model:
+  //   PA 5,500 ft, OAT 40F, 65% power -> 2,440 RPM
+  //   PA 5,500 ft, OAT 30F, 55% power -> 101 KTAS
+
+  // Standard ISA (15C sea level, 1.98C/1000ft lapse) -- unlike N7154N's
+  // POH-specific "standard day" column, this Piper chart's STD TEMP line
+  // matches literal ISA (verified: its SEA LEVEL line crosses PA=0 at
+  // almost exactly 59F/15C).
+  function n3IsaC(paFt){ return 15 - 1.98*(paFt/1000); }
+  function n3DensityAlt(paFt, oatC){ return paFt + 120*(oatC - n3IsaC(paFt)); }
+
+  var N3_PCTS = [55,60,65,70,75];
+  var N3_RPM = {
+    55:{rpm0:2179, rate:19.2},
+    60:{rpm0:2262, rate:18.4},
+    65:{rpm0:2321, rate:21.3},
+    70:{rpm0:2399, rate:21.1},
+    75:{rpm0:2477, rate:20.2}
+  };
+  // Airspeed chart is visibly bowed (TAS rises with altitude, then falls
+  // off past each line's best-power altitude) rather than straight, but
+  // the only precisely-known point per line is the 55% worked example;
+  // 65%/75% are anchored at the same density altitude using the
+  // power-to-speed cube relationship (TAS proportional to BHP^(1/3) at
+  // fixed drag) and share that one calibrated per-1000ft rate. This is
+  // the roughest part of the N3008U model -- treat it accordingly.
+  var N3_TAS_DA_REF = 4873.6;
+  var N3_TAS_RATE = 1.26;
+  var N3_TAS = {
+    55:{tasRef:101.0},
+    65:{tasRef:106.8},
+    75:{tasRef:111.9}
+  };
+  var N3_FF = { 55:{best:7.8,econ:6.3}, 65:{best:9.0,econ:7.6}, 75:{best:10.5,econ:8.8} };
+  var N3_DA_MIN = 0, N3_DA_MAX = 10000;
+
+  function n3Interp5(table, keys, field, pct){
+    var p = clamp(pct, keys[0], keys[keys.length-1]);
+    var i = 0;
+    while(i < keys.length-2 && keys[i+1] < p) i++;
+    var a = table[keys[i]], b = table[keys[i+1]];
+    var t = (p-keys[i])/(keys[i+1]-keys[i]);
+    return a[field] + t*(b[field]-a[field]);
+  }
+  function n3Interp3(v55, v65, v75, pct){
+    if(pct <= 65){ var t=(pct-55)/10; return v55 + t*(v65-v55); }
+    var t2 = (pct-65)/10; return v65 + t2*(v75-v65);
+  }
+
+  function n3Compute(pct, cond){
+    var daClamped = clamp(cond.da, N3_DA_MIN, N3_DA_MAX);
+    var rpm0 = n3Interp5(N3_RPM, N3_PCTS, 'rpm0', pct);
+    var rate = n3Interp5(N3_RPM, N3_PCTS, 'rate', pct);
+    var rpm = rpm0 + rate*daClamped/1000;
+
+    function tasFor(p){ return N3_TAS[p].tasRef + N3_TAS_RATE*(daClamped-N3_TAS_DA_REF)/1000; }
+    var tasKt = n3Interp3(tasFor(55), tasFor(65), tasFor(75), pct);
+    var ff = n3FF(pct);
+
+    return {
+      rpm: rpm, tasKt: tasKt, ffGph: ff.best, ffEcon: ff.econ,
+      daClamped: cond.da !== daClamped
+    };
+  }
+  function n3FF(pct){
+    return {
+      best: n3Interp3(N3_FF[55].best, N3_FF[65].best, N3_FF[75].best, pct),
+      econ: n3Interp3(N3_FF[55].econ, N3_FF[65].econ, N3_FF[75].econ, pct)
+    };
+  }
+
+  function n3PopulateAltitude(){
+    var sel = document.getElementById('n3-in-altitude');
+    for(var a=1000; a<=10000; a+=500){
+      var opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a.toLocaleString() + ' ft';
+      if(a === 4000) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function(){
+      document.getElementById('n3-altitude-display').textContent = parseFloat(sel.value).toLocaleString();
+      n3Recompute();
+    });
+  }
+
+  var n3OatDial, n3AltimeterDial, n3PctDial;
+  var n3Els = {};
+  ['n3-chips','n3-bezel-pill','n3-hero-rpm','n3-hero-ff','n3-hero-ff-econ',
+   'n3-hero-tas','n3-hero-tas-note','n3-hero-ias','n3-hero-note','n3-table-body'
+  ].forEach(function(id){ n3Els[id] = document.getElementById(id); });
+
+  function n3ReadConditions(){
+    var altitude = parseFloat(document.getElementById('n3-in-altitude').value) || 4000;
+    var altimeter = n3AltimeterDial.get();
+    var oat = n3OatDial.get();
+    var pa = pressureAltitude(altitude, altimeter);
+    var da = n3DensityAlt(pa, oat);
+    return {altitude:altitude, altimeter:altimeter, oat:oat, pa:pa, da:da};
+  }
+
+  function n3Recompute(){
+    var cond = n3ReadConditions();
+    var outOfRange = cond.pa < N3_DA_MIN || cond.pa > N3_DA_MAX || cond.da < N3_DA_MIN || cond.da > N3_DA_MAX;
+    document.getElementById('n3-conditions-card').classList.toggle('range-alert', outOfRange);
+
+    n3Els['n3-chips'].innerHTML =
+      '<span class="chip"><b class="num">'+fmt(cond.pa,0)+'</b><small>ft pressure alt.</small></span>' +
+      '<span class="chip"><b class="num">'+fmt(cond.da,0)+'</b><small>ft density alt.</small></span>' +
+      (outOfRange ? '<span class="chip warn"><b>&#9888;</b><small>outside chart range &mdash; clamped to nearest edge</small></span>' : '');
+
+    var pct = n3PctDial.get();
+    var res = n3Compute(pct, cond);
+    var ias = res.tasKt * Math.sqrt(densityRatio(cond.da));
+
+    n3Els['n3-hero-rpm'].innerHTML = fmt(res.rpm,0) + '<span class="unit">RPM</span>';
+    n3Els['n3-hero-ff'].innerHTML = fmt(res.ffGph,1) + '<span class="unit">GPH</span>';
+    n3Els['n3-hero-ff-econ'].textContent = fmt(res.ffEcon,1) + ' GPH best economy';
+    n3Els['n3-hero-tas'].innerHTML = fmt(res.tasKt,0) + '<span class="unit">KTAS</span>';
+    n3Els['n3-hero-tas-note'].textContent = 'wheel fairings installed; -8 kt if removed';
+    n3Els['n3-hero-ias'].innerHTML = fmt(ias,0) + '<span class="unit">KIAS</span>';
+
+    n3Els['n3-bezel-pill'].textContent = 'estimated';
+    n3Els['n3-bezel-pill'].className = 'pill warn';
+
+    var note = 'Digitized from the PA-28-181 POH performance charts (Figures 5-18 and 5-20) -- treat as an estimate, not a certified value.';
+    if(res.daClamped){
+      note += ' Conditions are outside the chart’s density-altitude range, clamped to the nearest edge.';
+    }
+    n3Els['n3-hero-note'].textContent = note;
+    n3Els['n3-hero-note'].classList.toggle('warn', false);
+
+    var rows = '';
+    N3_PCTS.forEach(function(p){
+      var rr = n3Compute(p, cond);
+      var riias = rr.tasKt * Math.sqrt(densityRatio(cond.da));
+      var cls = (p===pct) ? 'current' : '';
+      rows += '<tr class="'+cls+'">' +
+        '<td>'+p+'%</td>' +
+        '<td class="num">'+fmt(rr.rpm,0)+'</td>' +
+        '<td class="num">'+fmt(rr.ffGph,1)+'</td>' +
+        '<td class="num">'+fmt(rr.tasKt,0)+'</td>' +
+        '<td class="num">'+fmt(riias,0)+'</td>' +
+        '</tr>';
+    });
+    n3Els['n3-table-body'].innerHTML = rows;
+  }
+
+  n3PopulateAltitude();
+  n3OatDial = setupDial('n3-oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, n3Recompute);
+  n3AltimeterDial = setupDial('n3-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, n3Recompute);
+  n3PctDial = setupDial('n3-pct', {min:55,max:75,step:5,decimals:0,tickStep:5,value:65}, n3Recompute);
+
+  document.querySelectorAll('#n3-preset-col .preset-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var p = parseInt(btn.getAttribute('data-pct'), 10);
+      n3PctDial.set(p, true);
+      n3Recompute();
+    });
+  });
+
+  n3Recompute();
+
+  // ---- Aircraft tab switching ----
+  var PLANE_META = {
+    n7154n: {
+      tail: 'N7154N &middot; Naperville Flying Club',
+      h1: 'Power Setting Calculator',
+      subhead: '1968 Beechcraft E33 Bonanza &middot; Continental IO&#8209;470&#8209;K',
+      badges: '<span class="badge">225 BHP rated @ 2600 RPM</span>' +
+        '<span class="badge">POH Section V, 8/1982</span>' +
+        '<span class="badge">2950 lb avg cruise wt</span>'
+    },
+    n3008u: {
+      tail: 'N3008U',
+      h1: 'Power Setting Calculator',
+      subhead: '1977 Piper PA&#8209;28&#8209;181 Cherokee Archer II &middot; Lycoming O&#8209;360',
+      badges: '<span class="badge">180 BHP rated, fixed-pitch prop</span>' +
+        '<span class="badge">POH Section 5, VB-790</span>' +
+        '<span class="badge">2550 lb gross wt</span>'
+    }
+  };
+  function selectPlane(plane){
+    document.getElementById('page-n7154n').classList.toggle('active', plane==='n7154n');
+    document.getElementById('page-n3008u').classList.toggle('active', plane==='n3008u');
+    document.getElementById('tab-n7154n').classList.toggle('active', plane==='n7154n');
+    document.getElementById('tab-n3008u').classList.toggle('active', plane==='n3008u');
+    var meta = PLANE_META[plane];
+    document.getElementById('tail-label').innerHTML = meta.tail;
+    document.getElementById('page-h1').textContent = meta.h1;
+    document.getElementById('page-subhead').innerHTML = meta.subhead;
+    document.getElementById('page-badges').innerHTML = meta.badges;
+    try{ localStorage.setItem('aircraft-power-settings-plane', plane); }catch(e){}
+  }
+  document.getElementById('tab-n7154n').addEventListener('click', function(){ selectPlane('n7154n'); });
+  document.getElementById('tab-n3008u').addEventListener('click', function(){ selectPlane('n3008u'); });
+  var savedPlane = null;
+  try{ savedPlane = localStorage.getItem('aircraft-power-settings-plane'); }catch(e){}
+  if(savedPlane === 'n3008u') selectPlane('n3008u');
 })();
 </script>
 

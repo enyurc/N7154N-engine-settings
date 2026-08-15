@@ -1,7 +1,7 @@
 {
-  "name": "N7154N Power Settings",
-  "short_name": "N7154N Power",
-  "description": "RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza, Continental IO-470-K).",
+  "name": "Aircraft Power Settings",
+  "short_name": "Aircraft Power",
+  "description": "RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza) and N3008U (Piper PA-28-181 Archer II).",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

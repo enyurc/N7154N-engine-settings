@@ -1,9 +1,16 @@
-# N7154N Power Settings
+# Aircraft Power Settings
 
-An installable web app (PWA) that calculates cruise RPM, manifold pressure, fuel flow,
-and indicated/true airspeed at a desired % power, for any altitude and temperature —
-built for N7154N, a 1968 Beechcraft E33 Bonanza (Naperville Flying Club) with a
-Continental IO-470-K (225 BHP @ 2600 RPM).
+An installable web app (PWA) that calculates cruise power settings — RPM, manifold
+pressure (where applicable), fuel flow, and indicated/true airspeed — at a desired
+% power, for any altitude and temperature. Covers two aircraft, switchable with a
+tab at the top of the app:
+
+- **N7154N** — a 1968 Beechcraft E33 Bonanza (Naperville Flying Club) with a
+  Continental IO-470-K (225 BHP @ 2600 RPM), constant-speed prop.
+- **N3008U** — a 1977 Piper PA-28-181 Cherokee Archer II with a Lycoming O-360
+  (180 BHP), fixed-pitch prop. Since a fixed-pitch prop has no independent
+  manifold-pressure control, N3008U's page has a single input (% power) and
+  computes RPM, fuel flow, and airspeed — there's no manifold pressure dial.
 
 ## Install on iPad
 
@@ -17,6 +24,8 @@ That installs a full-screen app icon that works offline (a service worker caches
 app after the first load) — no App Store submission needed.
 
 ## How it works
+
+### N7154N
 
 You dial in **altitude, OAT, altimeter setting, RPM, and % power**; the app calculates
 manifold pressure, fuel flow, TAS, and IAS.
@@ -44,3 +53,40 @@ error and is only an estimate.
 The tables were transcribed from scanned copies of the POH. Spot-check the numbers against
 your own copy, and always cross-check any setting against N7154N's current POH and actual
 weight before using it in flight.
+
+### N3008U
+
+You dial in **altitude, OAT, altimeter setting, and % power**; the app calculates the
+resulting RPM, fuel flow, TAS, and IAS.
+
+Because N3008U has a fixed-pitch prop, there's no manifold-pressure dial and RPM is an
+*output*, not an input — you set power with the throttle and the RPM is whatever results
+at that altitude and temperature.
+
+The data comes from two nomograph-style charts in the PA-28-181 POH (Section 5
+Performance, Report VB-790): **Figure 5-18 "Engine Performance"** (RPM vs. density
+altitude, with fan lines at 55/60/65/70/75% power) and **Figure 5-20 "Speed Power —
+Performance Cruise"** (true airspeed vs. density altitude, fan lines at 55/65/75%).
+Both charts plot against a shared, unlabeled vertical axis that works out to be density
+altitude — each pressure-altitude line is drawn to cross the chart's "STD TEMP" reference
+exactly where OAT equals that altitude's standard temperature.
+
+Density altitude itself is computed **exactly** from pressure altitude and OAT (standard
+ISA: 15°C sea level, 1.98°C/1000 ft lapse), not read off a chart. RPM and TAS per %power
+line were fit as functions of density altitude by digitizing the charts and calibrating
+against their own worked examples, both of which the app's model reproduces exactly:
+
+- 5,500 ft pressure altitude, 40°F, 65% power → 2,440 RPM
+- 5,500 ft pressure altitude, 30°F, 55% power → 101 KTAS
+
+Reading values off a hand-drawn nomograph is inherently less precise than transcribing a
+printed table, so **every value on the N3008U page is labeled "estimated."** The airspeed
+figures assume wheel fairings installed, per the chart — subtract 8 kt if flying without
+them. Fuel flow (best power, leaned per Lycoming instructions) comes directly from the
+POH's fuel-flow table — 7.8/9.0/10.5 GPH at 55/65/75% power — which isn't
+altitude/temperature dependent in the source data. The model covers roughly sea
+level–10,000 ft pressure altitude; the real airspeed curves fold back over past their
+best-power altitude, so the app doesn't attempt to model beyond that range.
+
+Always cross-check any setting against N3008U's current POH and actual weight before
+using it in flight.
