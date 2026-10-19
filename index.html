@@ -1759,6 +1759,14 @@
       });
     });
   }
+  // Asks the browser not to evict this app's cached data under storage
+  // pressure. Best-effort only -- iOS Safari's actual eviction policy for a
+  // Home Screen-launched web app is already separate from regular Safari
+  // tabs (see README), so this mainly helps browsers that honor the
+  // Storage API's persistence hint more literally.
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(function(){});
+  }
 </script>
 
 </body>

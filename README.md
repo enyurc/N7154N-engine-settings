@@ -26,12 +26,23 @@ app after the first load) — no App Store submission needed.
 **For offline to stick, open the app once with a normal connection after installing
 or updating it**, then leave it alone — the service worker precaches everything on
 that first load, and from then on launches from the Home Screen icon are served from
-that cache first, network or not. Two things undo this on iOS: opening the URL as a
-regular Safari tab/bookmark instead of the Home Screen icon (Safari tabs don't get the
-same storage protection and iOS can clear their cached data after about a week of
-disuse), and a long stretch with the Home Screen app itself never launched — if it's
-been untouched for a long time, give it one normal-connection launch to let the
-service worker re-populate before you rely on it offline again.
+that cache first, network or not.
+
+**Launch it from the Home Screen icon, not a Safari tab or bookmark.** This is the
+part that actually makes offline support durable long-term on iOS: Apple exempts
+standalone web apps (ones added to the Home Screen, which is what `display:
+standalone` in `manifest.json` triggers) from Safari's general policy of clearing a
+site's cached data after about a week of disuse. That policy only applies to regular
+Safari browsing. An icon you only ever launch from the Home Screen should stay
+offline-capable indefinitely without needing to "refresh" it.
+
+The app also calls `navigator.storage.persist()` as a best-effort hint not to evict
+its data, though the Home Screen exemption above is what actually does the work on
+iOS. Nothing in the app's own code can override the few things that *do* still clear
+it: manually clearing Safari/website data, deleting and re-adding the Home Screen
+icon, or iOS offloading app data device-wide under severe storage pressure (the same
+fallback that can affect native apps). If any of those happen, one normal-connection
+launch re-seeds the cache from scratch.
 
 ## How it works
 
