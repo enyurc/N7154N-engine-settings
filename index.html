@@ -1748,5 +1748,18 @@
 })();
 </script>
 
+<script>
+  // Registers the offline cache (sw.js) -- without this call the service
+  // worker file just sits unused and the app never actually works offline,
+  // no matter how it was added to the home screen.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(err){
+        console.error('Service worker registration failed:', err);
+      });
+    });
+  }
+</script>
+
 </body>
 </html>

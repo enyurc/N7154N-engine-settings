@@ -23,6 +23,16 @@ tab at the top of the app:
 That installs a full-screen app icon that works offline (a service worker caches the
 app after the first load) — no App Store submission needed.
 
+**For offline to stick, open the app once with a normal connection after installing
+or updating it**, then leave it alone — the service worker precaches everything on
+that first load, and from then on launches from the Home Screen icon are served from
+that cache first, network or not. Two things undo this on iOS: opening the URL as a
+regular Safari tab/bookmark instead of the Home Screen icon (Safari tabs don't get the
+same storage protection and iOS can clear their cached data after about a week of
+disuse), and a long stretch with the Home Screen app itself never launched — if it's
+been untouched for a long time, give it one normal-connection launch to let the
+service worker re-populate before you rely on it offline again.
+
 ## How it works
 
 ### N7154N
