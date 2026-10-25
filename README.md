@@ -2,7 +2,7 @@
 
 An installable web app (PWA) that calculates cruise power settings — RPM, manifold
 pressure (where applicable), fuel flow, and indicated/true airspeed — at a desired
-% power, for any altitude and temperature. Covers two aircraft, switchable with a
+% power, for any altitude and temperature. Covers three aircraft, switchable with a
 tab at the top of the app:
 
 - **N7154N** — a 1968 Beechcraft E33 Bonanza (Naperville Flying Club) with a
@@ -11,6 +11,9 @@ tab at the top of the app:
   (180 BHP), fixed-pitch prop. Since a fixed-pitch prop has no independent
   manifold-pressure control, N3008U's page has a single input (% power) and
   computes RPM, fuel flow, and airspeed — there's no manifold pressure dial.
+- **N114EL** — a Piper PA-32-301 Saratoga with a Lycoming IO-540-K (300 BHP @ 2700
+  RPM), constant-speed prop. Same layout as N7154N: RPM and % power in, manifold
+  pressure out.
 
 ## Install on iPad
 
@@ -128,4 +131,61 @@ with % power (roughly constant BSFC). It's a materially rougher estimate than th
 digitized 55–75% range above it.
 
 Always cross-check any setting against N3008U's current POH and actual weight before
+using it in flight.
+
+### N114EL
+
+You dial in **altitude, OAT, altimeter setting, RPM, and % power**; the app calculates
+manifold pressure, fuel flow, TAS, and IAS. Same layout as N7154N.
+
+**Manifold pressure** comes from the PA-32-301 POH's **Power Setting Table — Lycoming
+IO-540K Engine** (Section 5, Figure 5-25, Report VB-1060, revised 10/7/1983): MP at
+55/65/75% power for 2200–2600 RPM (100 RPM steps), sea level–14,000 ft pressure altitude,
+at standard temperature. The app interpolates linearly between rows and columns and applies
+the table's own temperature correction (0.15 inHg per 5°C from standard altitude
+temperature: add when warmer, subtract when colder). Any 100 RPM column at exactly
+55/65/75% reproduces the table value exactly and is labeled **certified**; this was
+checked for all 148 printed cells through the live UI. Two misprints in the scanned table
+are corrected:
+
+- 75% / 1,000 ft / 2300 RPM prints **20.6**. That can't sit between its 27.6 and 25.9
+  neighbors, so the app uses **26.6**, which fits every adjacent cell.
+- The row labeled **17000** sits between 11,000 and 13,000 ft and has a −9°C standard
+  temperature, so it's the **12,000 ft** row.
+
+**Full throttle.** The table's "—" cells are settings full throttle can't reach. The app
+models full-throttle MP as 0.97 × standard ambient pressure plus a small offset per power
+level (0.265 / 0.652 / 0.925 inHg at 55/65/75%), fit to that boundary. It puts all 148
+printed values at or under the line and all 77 "—" cells over it, with 0.009 inHg of
+margin on each side, so no extra tolerance is applied. Like N7154N's MP-vs-RPM limit, when
+a setting needs more MP than full throttle provides (which can include a hot day, per the
+POH's note), the app adjusts the other dial. Moving RPM lowers % power. Moving % power or
+the conditions raises RPM first, then lowers % power if 2600 RPM still isn't enough. This
+was swept across ~550,000 condition/RPM/power combinations: the app never ended on an
+unreachable setting, never moved a valid one, and always landed on the nearest valid step.
+A cold day can bring a "—" cell back within reach. For that case each altitude row is fit
+as MP = A + B/RPM through its printed cells (within 0.18 inHg) and extended. Those values
+are marked with an asterisk and labeled estimated.
+
+**Other RPM / % power settings** are estimated. 50 RPM steps interpolate between columns,
+and % power interpolates between the 55/65/75% tables. **Below 55%** (red on the dial,
+10–40%), MP continues each RPM's 55–65% line. That matches basic engine physics: at fixed
+RPM, brake power is close to linear in MP above a friction-loss intercept, which this table
+puts at roughly 7–12 inHg at zero power.
+
+**True airspeed** is digitized from Figure 5-29, **Speed — Cruise Power** (peak EGT,
+wheel fairings installed, 3,600 lb). Its 55/65/75% lines are straight in density altitude;
+each was traced and fit individually. The fits are within 0.35 kt of the 440 traced points,
+and they reproduce the chart's worked example: 6,000 ft, +6°C, 65% → 136 kt. A **Wheel
+Fairings** switch (default **installed**, the chart's baseline) applies the chart's
+"subtract 8 kts if not installed." Below 55%, TAS follows the cube-law relationship from
+the 55% line, like N3008U. Density altitude outside about 0–14,000 ft is clamped to the
+chart edge.
+
+**Fuel flow** is the POH's approximate 11.9/13.8/16.0 GPH at 55/65/75% (peak EGT),
+interpolated between those points and scaled proportionally below 55%; the three points
+give a nearly constant BSFC. The readout also shows the chart's 50°F-rich-of-peak figure:
+about 16% more fuel and +2 kt.
+
+Always cross-check any setting against N114EL's current POH and actual weight before
 using it in flight.

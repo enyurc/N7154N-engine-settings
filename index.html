@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aircraft Power Settings</title>
-<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza) and N3008U (Piper PA-28-181 Archer II), interpolated from each aircraft's certified POH performance charts.">
+<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), interpolated from each aircraft's certified POH performance charts.">
 <meta name="theme-color" content="#12161B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -360,6 +360,11 @@
     font-weight:700;
   }
   tbody tr.current{background:var(--surface-2);}
+  td.current-cell{background:color-mix(in srgb, var(--accent) 22%, transparent);font-weight:700;}
+  thead th.th-group{text-align:center;border-bottom:1px solid var(--border);}
+  thead tr + tr th:first-child{text-align:right;}
+  .table-note{font-size:.76rem;color:var(--ink-dim);margin:.6rem 0 0;}
+  .table-note:empty{display:none;}
   .table-scroll{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
   .table-scroll table{min-width:520px;}
 
@@ -417,6 +422,7 @@
       <div class="plane-tabs" role="tablist" aria-label="Aircraft">
         <button type="button" class="plane-tab active" id="tab-n7154n" data-plane="n7154n">N7154N</button>
         <button type="button" class="plane-tab" id="tab-n3008u" data-plane="n3008u">N3008U</button>
+        <button type="button" class="plane-tab" id="tab-n114el" data-plane="n114el">N114EL</button>
       </div>
     </div>
     <h1 id="page-h1">Power Setting Calculator</h1>
@@ -855,6 +861,252 @@
       <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check any power setting, RPM,
       mixture, or airspeed figure against N3008U's current, complete Pilot's Operating Handbook and the
       aircraft's actual weight before using it in flight.</span>
+    </div>
+  </section>
+
+</div>
+
+<div class="page" id="page-n114el">
+
+  <section id="el-conditions">
+    <p class="section-label">Conditions</p>
+    <div class="card" id="el-conditions-card">
+      <div class="cond-grid">
+
+        <div class="cond-cell cond-altitude">
+          <span class="dial-caption">Altitude</span>
+          <div class="gauge select-face" id="el-altitude-face">
+            <span class="select-value"><span id="el-altitude-display">6,000</span></span>
+            <span class="dial-unit">FT</span>
+            <span class="select-chevron">&#9662;</span>
+            <select id="el-in-altitude" class="native-select" aria-label="Altitude"></select>
+          </div>
+          <span class="dial-hint">pressure altitude corrected below</span>
+        </div>
+
+        <div class="cond-cell cond-temp">
+          <span class="dial-caption">Outside Air Temp</span>
+          <div class="gauge dial" id="dial-el-oat" tabindex="0" role="slider"
+               aria-label="Outside air temperature" aria-valuemin="-40" aria-valuemax="40" aria-valuenow="15">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">15</span>
+              <span class="dial-unit">&deg;C</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="el-oat" data-dir="-1" aria-label="Decrease temperature">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="el-oat" data-dir="1" aria-label="Increase temperature">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell cond-altimeter">
+          <span class="dial-caption">Altimeter Setting</span>
+          <div class="gauge dial" id="dial-el-altimeter" tabindex="0" role="slider"
+               aria-label="Altimeter setting" aria-valuemin="28" aria-valuemax="31" aria-valuenow="29.92">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">29.92</span>
+              <span class="dial-unit">inHg</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="el-altimeter" data-dir="-1" aria-label="Decrease altimeter setting">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="el-altimeter" data-dir="1" aria-label="Increase altimeter setting">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="derived-chips" id="el-chips"></div>
+    </div>
+  </section>
+
+  <section id="el-power">
+    <p class="section-label">Cruise power setting</p>
+    <div class="card">
+      <div class="power-grid">
+
+        <div class="cond-cell">
+          <span class="dial-caption">RPM</span>
+          <div class="gauge dial" id="dial-el-rpm" tabindex="0" role="slider"
+               aria-label="Engine speed" aria-valuemin="2200" aria-valuemax="2600" aria-valuenow="2400">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">2400</span>
+              <span class="dial-unit">RPM</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="el-rpm" data-dir="-1" aria-label="Decrease RPM">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="el-rpm" data-dir="1" aria-label="Increase RPM">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell power-presets">
+          <span class="dial-caption">Presets</span>
+          <div class="preset-col" id="el-preset-col">
+            <button type="button" class="preset-btn" data-pct="75">75%</button>
+            <button type="button" class="preset-btn" data-pct="65">65%</button>
+            <button type="button" class="preset-btn" data-pct="55">55%</button>
+          </div>
+          <span class="dial-caption">Wheel Fairings</span>
+          <label class="switch">
+            <input type="checkbox" id="el-fairings-toggle" checked
+                   aria-label="Wheel fairings installed">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+          <span class="switch-state on" id="el-fairings-state">Installed</span>
+        </div>
+
+        <div class="cond-cell">
+          <span class="dial-caption">% Power</span>
+          <div class="gauge dial" id="dial-el-pct" tabindex="0" role="slider"
+               aria-label="Desired percent power" aria-valuemin="10" aria-valuemax="75" aria-valuenow="65">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">65</span>
+              <span class="dial-unit">% PWR</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="el-pct" data-dir="-1" aria-label="Decrease percent power">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="el-pct" data-dir="1" aria-label="Increase percent power">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bezel">
+        <p class="bezel-title">Computed setting <span class="pill" id="el-bezel-pill"></span></p>
+        <div class="bezel-grid">
+          <div class="bezel-item">
+            <span class="lbl">RPM</span>
+            <span class="val mono" id="el-hero-rpm">&mdash;</span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Manifold Pressure</span>
+            <span class="val mono" id="el-hero-mp">&mdash;<span class="unit">inHg</span></span>
+            <span class="sub" id="el-hero-mp-sub"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Fuel Flow</span>
+            <span class="val mono small" id="el-hero-ff">&mdash;<span class="unit">GPH</span></span>
+            <span class="sub" id="el-hero-ff-rop"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">True Airspeed</span>
+            <span class="val mono small" id="el-hero-tas">&mdash;<span class="unit">KTAS</span></span>
+            <span class="sub" id="el-hero-tas-note"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Indicated Airspeed</span>
+            <span class="val mono small" id="el-hero-ias">&mdash;<span class="unit">KIAS</span></span>
+            <span class="sub">derived, not tabulated</span>
+          </div>
+        </div>
+        <p class="bezel-note" id="el-hero-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="el-table">
+    <p class="section-label">POH power settings at these conditions</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">% Pwr</th>
+            <th colspan="5" class="th-group">MP (inHg) at RPM</th>
+            <th rowspan="2">FF (GPH)</th>
+            <th rowspan="2">KTAS</th>
+            <th rowspan="2">KIAS</th>
+          </tr>
+          <tr>
+            <th>2200</th><th>2300</th><th>2400</th><th>2500</th><th>2600</th>
+          </tr>
+        </thead>
+        <tbody id="el-table-body"></tbody>
+      </table>
+    </div>
+    <p class="table-note" id="el-table-note"></p>
+  </section>
+
+  <section id="el-source">
+    <p class="section-label">Data source</p>
+    <details class="source" id="el-source-details">
+      <summary>How these numbers are calculated <span class="chev">&#9656;</span></summary>
+      <p><b>Manifold pressure</b> comes from the certified <b>Power Setting Table &mdash; Lycoming IO&#8209;540&#8209;K
+      Engine</b>, PA&#8209;32&#8209;301 Saratoga Pilot's Operating Handbook, Section 5 Performance, Figure 5&#8209;25
+      (Report VB&#8209;1060, issued 1/9/1980, revised 10/7/1983): manifold pressure at 55%, 65%, and 75% power for
+      2200&ndash;2600 RPM in 100&nbsp;RPM steps, sea level to 14,000&nbsp;ft pressure altitude, at standard
+      temperature. The app interpolates linearly between table rows and RPM columns, then applies the table's own
+      temperature correction &mdash; <b>0.15&Prime;&nbsp;Hg per 5&deg;C</b> above (add) or below (subtract) the
+      table's standard altitude temperature. Any 100&nbsp;RPM step at exactly 55/65/75% reproduces the table
+      exactly and is labeled <b>certified</b>.</p>
+      <p>Two apparent misprints in the scanned table are corrected: <b>75% / 1,000&nbsp;ft / 2300&nbsp;RPM reads
+      &ldquo;20.6&rdquo;</b> in the POH, which is physically impossible between its 27.6 and 25.9 neighbors and is
+      taken as <b>26.6</b> (on&#8209;trend with every adjacent cell); and the row labeled <b>&ldquo;17000&rdquo;</b>
+      sits between 11,000 and 13,000&nbsp;ft with a &minus;9&deg;C standard temperature, so it's the <b>12,000&nbsp;ft</b>
+      row.</p>
+      <p><b>Full throttle.</b> The POH's &ldquo;&mdash;&rdquo; cells are settings that full throttle can't reach at
+      that altitude. The app models full&#8209;throttle manifold pressure as a fixed fraction of standard ambient
+      pressure plus a small power&#8209;dependent offset, fit to that boundary &mdash; it separates every printed
+      value from every &ldquo;&mdash;&rdquo; in the table. When your setting needs more manifold pressure than full
+      throttle provides (including on a hot day, per the POH note that full&#8209;throttle values may not be
+      obtainable in non&#8209;standard conditions), the app adjusts the other dial: moving RPM pulls % power down to
+      what's attainable, and moving % power raises RPM first, then lowers % power if even 2600&nbsp;RPM isn't
+      enough. On a cold day the temperature correction can bring a &ldquo;&mdash;&rdquo; cell back within reach;
+      those cells are filled by extending each altitude row's manifold&#8209;pressure&ndash;vs&ndash;RPM curve
+      (shown with an asterisk below, and labeled estimated).</p>
+      <p><b>Any other RPM or % power</b> is <b>estimated</b>: 50&nbsp;RPM steps interpolate between table columns,
+      and % power between 55, 65, and 75% interpolates between the three power tables. <b>Below 55%</b> (shaded red
+      on the % power dial, 10&ndash;40%) is below the table entirely; manifold pressure continues the 55&ndash;65%
+      line at each RPM, which follows basic engine physics (at fixed RPM, brake power is close to linear in manifold
+      pressure above a friction&#8209;loss intercept &mdash; extended to zero power, this table puts that intercept at
+      about 7&ndash;12&nbsp;inHg, a plausible value for a large six&#8209;cylinder engine). It's a rougher estimate
+      than the tabulated 55&ndash;75% range.</p>
+      <p><b>True airspeed</b> is digitized from the <b>Speed &mdash; Cruise Power</b> chart, Figure 5&#8209;29
+      (flaps up, mixture leaned to peak EGT, wheel fairings installed, 3,600&nbsp;lb gross weight). Its 55/65/75%
+      lines are straight in density altitude, and each was traced and fit individually; the app reproduces the
+      chart's own worked example (6,000&nbsp;ft, +6&deg;C, 65% &rarr; 136&nbsp;kt). Density altitude is computed
+      exactly from pressure altitude and OAT. The chart prints &ldquo;if wheel fairings are not installed subtract
+      8&nbsp;kts&rdquo; &mdash; the <b>Wheel Fairings</b> switch applies that. Below 55%, airspeed follows the
+      power&#8209;to&#8209;speed cube relationship from the 55% line (same approach as the N3008U page). The chart
+      covers roughly 0&ndash;14,000&nbsp;ft density altitude; outside that it's clamped to the nearest edge.</p>
+      <p><b>Fuel flow</b> is the POH's approximate fuel flow, 11.9/13.8/16.0&nbsp;GPH at 55/65/75% (leaned to peak
+      EGT), interpolated between those and scaled proportionally below 55% (those three points work out to an almost
+      constant brake&#8209;specific fuel consumption). Per the chart's note, leaning to <b>50&deg;F rich of peak</b>
+      instead adds about 16% fuel flow and 2&nbsp;kt; the fuel flow readout shows that figure too.</p>
+      <p><b>Indicated airspeed</b> is derived from TAS using the standard density&#8209;altitude correction
+      (KIAS &asymp; KTAS &times; &radic;&sigma;), the same as the other pages &mdash; it ignores position error and is
+      only an estimate.</p>
+    </details>
+  </section>
+
+  <section id="el-notes">
+    <div class="disclaimer">
+      <span>&#9888;&#65039;</span>
+      <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check any RPM, manifold
+      pressure, mixture, or airspeed setting against N114EL's current, complete Pilot's Operating Handbook
+      and the aircraft's actual weight before using it in flight.</span>
     </div>
   </section>
 
@@ -1709,6 +1961,432 @@
 
   n3Recompute();
 
+  // ============================================================
+  // N114EL -- Piper PA-32-301 Saratoga (Lycoming IO-540-K, constant-speed prop)
+  // ============================================================
+  //
+  // Manifold pressure: POH Section 5 Figure 5-25 "Power Setting Table --
+  // Lycoming IO-540K Engine" (Report VB-1060). Rows are pressure altitude
+  // SL-14,000 ft every 1000 ft, columns 2200-2600 RPM every 100, values at
+  // the table's standard altitude temperature (15C SL, -2C/1000 ft). null
+  // is a printed "--": not obtainable at full throttle. Two misprints are
+  // corrected here: 75% / 1000 ft / 2300 RPM prints "20.6" (26.6 is on-trend
+  // with every neighbor), and the 12,000 ft row is labeled "17000".
+  var EL_PA_MAX = 14000;
+  var EL_RPM_MIN = 2200, EL_RPM_MAX = 2600;
+  var EL_PCTS = [55,65,75];
+  var EL_POH = {
+    55: [
+      [22.9,22.1,21.6,21.1,20.7],
+      [22.5,21.8,21.3,20.7,20.4],
+      [22.1,21.4,21.0,20.5,20.1],
+      [21.8,21.1,20.7,20.2,19.8],
+      [21.5,20.8,20.4,20.0,19.5],
+      [21.2,20.5,20.1,19.7,19.3],
+      [20.8,20.3,19.9,19.4,19.0],
+      [20.5,20.0,19.6,19.1,18.8],
+      [20.2,19.7,19.3,18.9,18.5],
+      [19.9,19.5,19.1,18.6,18.3],
+      [19.6,19.2,18.8,18.4,18.0],
+      [19.3,19.0,18.6,18.2,17.8],
+      [null,18.7,18.4,17.9,17.6],
+      [null,null,null,17.7,17.4],
+      [null,null,null,null,17.2]
+    ],
+    65: [
+      [25.8,24.8,24.0,23.5,23.1],
+      [25.3,24.4,23.7,23.1,22.7],
+      [24.8,24.0,23.3,22.8,22.4],
+      [24.3,23.6,23.0,22.4,22.1],
+      [23.8,23.3,22.6,22.1,21.8],
+      [23.4,22.9,22.3,21.8,21.5],
+      [23.0,22.5,22.0,21.5,21.2],
+      [22.6,22.2,21.7,21.2,20.9],
+      [22.2,21.8,21.4,20.9,20.6],
+      [null,null,21.1,20.6,20.3],
+      [null,null,null,20.3,20.0],
+      [null,null,null,null,19.7],
+      [null,null,null,null,null],
+      [null,null,null,null,null],
+      [null,null,null,null,null]
+    ],
+    75: [
+      [28.2,27.1,26.4,25.7,25.1],
+      [27.6,26.6,25.9,25.3,24.8],
+      [27.0,26.2,25.5,25.0,24.5],
+      [26.5,25.8,25.2,24.7,24.2],
+      [null,25.5,24.8,24.4,24.0],
+      [null,null,24.6,24.1,23.7],
+      [null,null,null,23.9,23.5],
+      [null,null,null,null,23.3],
+      [null,null,null,null,null],
+      [null,null,null,null,null],
+      [null,null,null,null,null],
+      [null,null,null,null,null],
+      [null,null,null,null,null],
+      [null,null,null,null,null],
+      [null,null,null,null,null]
+    ]
+  };
+  // Values for the "--" cells (leading nulls of each row, in order), so a
+  // cold day -- whose temperature correction lowers the MP a setting needs
+  // -- can still reach them. Each altitude row is fit as MP = A + B/RPM
+  // through its printed cells (within 0.18 inHg of every one) and extended
+  // across the row. Never labeled certified.
+  var EL_FILL = {
+    55: {12:[19.18], 13:[18.76,18.38,18.03], 14:[18.56,18.18,17.83,17.5]},
+    65: {9:[22.02,21.53], 10:[21.36,20.98,20.62], 11:[21.06,20.68,20.33,20.0], 12:[20.63,20.28,19.96,19.67,19.4], 13:[20.21,19.9,19.61,19.35,19.11], 14:[19.79,19.52,19.26,19.03,18.81]},
+    75: {4:[26.01], 5:[25.65,25.1], 6:[25.32,24.8,24.33], 7:[25.12,24.6,24.13,23.7], 8:[24.77,24.29,23.85,23.45,23.07], 9:[24.47,24.01,23.59,23.21,22.86], 10:[24.16,23.73,23.34,22.98,22.64], 11:[23.86,23.46,23.08,22.74,22.42], 12:[23.56,23.18,22.83,22.5,22.21], 13:[23.26,22.9,22.57,22.27,21.99], 14:[22.95,22.62,22.32,22.03,21.78]}
+  };
+  var EL_GRID = {};
+  EL_PCTS.forEach(function(p){
+    EL_GRID[p] = EL_POH[p].map(function(row, i){
+      var fills = EL_FILL[p][i] || [], k = 0;
+      return row.map(function(v){
+        return v === null ? {mp:fills[k++], cert:false} : {mp:v, cert:true};
+      });
+    });
+  });
+
+  // The POH's own correction: 0.15" Hg per 5C from standard altitude
+  // temperature, added above standard and subtracted below.
+  var EL_TEMP_CORR = 0.03;
+  function elStdTempC(paFt){ return 15 - 2*(paFt/1000); }
+  // Density altitude uses literal ISA (1.98C/1000 ft), which is what the
+  // speed chart's pressure-altitude lines are drawn against.
+  function elDensityAlt(paFt, oatC){ return paFt + 120*(oatC - (15 - 1.98*(paFt/1000))); }
+
+  // Full-throttle MP: a fixed fraction of standard ambient pressure plus a
+  // small power-dependent offset, fit to the table's "--" boundary. It puts
+  // every printed cell at or under it and every "--" cell over it (closest
+  // either way: 0.009 inHg), so there's no slack to add a tolerance on top.
+  var EL_FT_OFFSET = {55:0.265, 65:0.652, 75:0.925};
+  function elInterp3(v55, v65, v75, pct){
+    if(pct <= 65){ var t = (pct-55)/10; return (1-t)*v55 + t*v65; }
+    var t2 = (pct-65)/10;
+    return (1-t2)*v65 + t2*v75;
+  }
+  function elFullThrottleMp(paFt, pct){
+    var pStd = 29.92*Math.pow(1 - 6.8756e-6*paFt, 5.2559);
+    return 0.97*pStd + elInterp3(EL_FT_OFFSET[55], EL_FT_OFFSET[65], EL_FT_OFFSET[75], pct);
+  }
+
+  // Standard-temperature MP for one power table, bilinear in (PA, RPM).
+  // Only cells with nonzero weight count toward the certified flag.
+  function elTableMp(pct, paFt, rpm){
+    var grid = EL_GRID[pct];
+    var x = paFt/1000, y = (rpm-EL_RPM_MIN)/100;
+    var i0 = Math.min(Math.floor(x), grid.length-2), ti = x - i0;
+    var j0 = Math.min(Math.floor(y), 3), tj = y - j0;
+    var mp = 0, cert = true;
+    [[i0,j0,(1-ti)*(1-tj)], [i0+1,j0,ti*(1-tj)], [i0,j0+1,(1-ti)*tj], [i0+1,j0+1,ti*tj]].forEach(function(c){
+      if(c[2] <= 0) return;
+      var cell = grid[c[0]][c[1]];
+      mp += c[2]*cell.mp;
+      if(!cell.cert) cert = false;
+    });
+    return {mp:mp, cert:cert};
+  }
+
+  // Airspeed: Figure 5-29 "Speed -- Cruise Power" (peak EGT, wheel
+  // fairings installed, 3600 lb). Each power line is straight in density
+  // altitude; traced and fit individually, TAS = a + b*DA/1000. Reproduces
+  // the chart's worked example (6000 ft, +6C, 65% -> 136 kt).
+  var EL_TAS = {55:{a:115.290, b:1.2633}, 65:{a:125.517, b:1.6040}, 75:{a:132.782, b:2.0466}};
+  var EL_DA_MIN = 0, EL_DA_MAX = 14000;
+  var EL_FF = {55:11.9, 65:13.8, 75:16.0};
+  // Chart note: leaning to 50F rich of peak EGT adds ~16% fuel flow and ~2 kt.
+  var EL_ROP_FF = 1.16, EL_ROP_KT = 2;
+  var EL_FAIRINGS_TAS_PENALTY = 8;
+  var EL_TABLE_MIN_PCT = 55;
+
+  // Below 55% (off the table) MP continues each RPM's 55-65% line --
+  // at fixed RPM brake power is close to linear in MP above a friction
+  // intercept, which this table puts at a plausible 7-12 inHg. TAS uses the
+  // power-to-speed cube law off the 55% line and fuel flow scales with
+  // power (the three POH fuel flows work out to a near-constant BSFC).
+  function elCompute(rpm, pct, cond){
+    var pa = clamp(cond.pa, 0, EL_PA_MAX);
+    var r55 = elTableMp(55, pa, rpm), r65 = elTableMp(65, pa, rpm), r75 = elTableMp(75, pa, rpm);
+    var mpStd = elInterp3(r55.mp, r65.mp, r75.mp, pct);
+    var tempCorr = EL_TEMP_CORR*(cond.oat - elStdTempC(pa));
+    var mp = mpStd + tempCorr;
+    var ft = elFullThrottleMp(pa, pct);
+
+    var da = clamp(cond.da, EL_DA_MIN, EL_DA_MAX);
+    function tasLine(p){ return EL_TAS[p].a + EL_TAS[p].b*da/1000; }
+    var tasKt, ffGph;
+    if(pct >= EL_TABLE_MIN_PCT){
+      tasKt = elInterp3(tasLine(55), tasLine(65), tasLine(75), pct);
+      ffGph = elInterp3(EL_FF[55], EL_FF[65], EL_FF[75], pct);
+    } else {
+      tasKt = tasLine(55) * Math.pow(pct/EL_TABLE_MIN_PCT, 1/3);
+      ffGph = EL_FF[55] * (pct/EL_TABLE_MIN_PCT);
+    }
+    if(!cond.fairingsInstalled) tasKt -= EL_FAIRINGS_TAS_PENALTY;
+
+    var tableCert = pct===55 ? r55.cert : pct===65 ? r65.cert : pct===75 ? r75.cert : false;
+    return {
+      mp: mp, mpStd: mpStd, tempCorr: tempCorr, ft: ft,
+      exceeds: mp > ft,
+      certified: tableCert && rpm % 100 === 0,
+      tasKt: tasKt, ffGph: ffGph,
+      belowTable: pct < EL_TABLE_MIN_PCT,
+      clamped: pa !== cond.pa || da !== cond.da
+    };
+  }
+
+  // Highest % power at this RPM that full throttle can still reach. MP
+  // rises with % power much faster than the full-throttle offset does, so
+  // the excess is monotonic and a bisection finds the crossing.
+  function elSolvePctForLimit(rpm, cond){
+    function excess(p){ var r = elCompute(rpm, p, cond); return r.mp - r.ft; }
+    if(excess(PCT_MIN) > 0) return PCT_MIN;
+    if(excess(PCT_MAX) <= 0) return PCT_MAX;
+    var lo = PCT_MIN, hi = PCT_MAX;
+    for(var i=0; i<30; i++){
+      var mid = (lo+hi)/2;
+      if(excess(mid) > 0) hi = mid; else lo = mid;
+    }
+    // Round down to the step grid, then take one step back up if that
+    // setting sits exactly on the boundary and is still reachable.
+    var p = clamp(Math.floor(lo/5)*5, PCT_MIN, PCT_MAX);
+    if(p+5 <= PCT_MAX && excess(p+5) <= 0) p += 5;
+    return p;
+  }
+
+  // Lowest RPM that brings this % power within full-throttle reach (MP
+  // needed falls as RPM rises; the full-throttle MP doesn't depend on RPM).
+  function elSolveRpmForLimit(pct, cond){
+    function excess(rpm){ var r = elCompute(rpm, pct, cond); return r.mp - r.ft; }
+    var lo = EL_RPM_MIN, hi = EL_RPM_MAX;
+    if(excess(hi) > 0) return hi;
+    if(excess(lo) <= 0) return lo;
+    for(var i=0; i<30; i++){
+      var mid = (lo+hi)/2;
+      if(excess(mid) > 0) lo = mid; else hi = mid;
+    }
+    var r = clamp(Math.ceil(hi/50)*50, EL_RPM_MIN, EL_RPM_MAX);
+    if(r-50 >= EL_RPM_MIN && excess(r-50) <= 0) r -= 50;
+    return r;
+  }
+
+  var elOatDial, elAltimeterDial, elRpmDial, elPctDial;
+  var elAdjusted = false;
+
+  function elCurrentAltitude(){
+    return parseFloat(document.getElementById('el-in-altitude').value) || 6000;
+  }
+
+  // Valid range for altitude / altimeter setting that keeps pressure
+  // altitude within the table's SL-14,000 ft, given the other one's value.
+  function elAltimeterBounds(){
+    var altitude = elCurrentAltitude();
+    return linearBounds(function(a){ return pressureAltitude(altitude, a); }, 0, EL_PA_MAX, 28, 31) || [28, 31];
+  }
+  function elAltitudeBounds(){
+    var altimeter = elAltimeterDial.get();
+    return linearBounds(function(alt){ return pressureAltitude(alt, altimeter); }, 0, EL_PA_MAX, 1000, 14000) || [1000, 14000];
+  }
+  function elSnapAltitudeInto(bounds){
+    var cur = elCurrentAltitude();
+    if(cur >= bounds[0]-0.01 && cur <= bounds[1]+0.01) return;
+    var target = cur < bounds[0] ? bounds[0] : bounds[1];
+    var snapped = clamp(Math.round(target/500)*500, 1000, 14000);
+    if(snapped < bounds[0]-0.01) snapped += 500;
+    if(snapped > bounds[1]+0.01) snapped -= 500;
+    snapped = clamp(snapped, 1000, 14000);
+    document.getElementById('el-in-altitude').value = String(snapped);
+    document.getElementById('el-altitude-display').textContent = snapped.toLocaleString();
+  }
+  function elSnapAltimeterInto(bounds){
+    var cur = elAltimeterDial.get();
+    if(cur >= bounds[0]-1e-6 && cur <= bounds[1]+1e-6) return;
+    elAltimeterDial.set(cur < bounds[0] ? bounds[0] : bounds[1], true);
+  }
+
+  function elPopulateAltitude(){
+    var sel = document.getElementById('el-in-altitude');
+    for(var a=1000; a<=14000; a+=500){
+      var opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a.toLocaleString() + ' ft';
+      if(a === 6000) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function(){
+      document.getElementById('el-altitude-display').textContent = parseFloat(sel.value).toLocaleString();
+      elSnapAltimeterInto(elAltimeterBounds());
+      elEnforceLimits('pct');
+      elRecompute();
+    });
+  }
+
+  var elEls = {};
+  ['el-chips','el-bezel-pill','el-hero-rpm','el-hero-mp','el-hero-mp-sub','el-hero-ff','el-hero-ff-rop',
+   'el-hero-tas','el-hero-tas-note','el-hero-ias','el-hero-note','el-table-body','el-table-note'
+  ].forEach(function(id){ elEls[id] = document.getElementById(id); });
+
+  function elReadConditions(){
+    var altitude = elCurrentAltitude();
+    var altimeter = elAltimeterDial.get();
+    var oat = elOatDial.get();
+    var pa = pressureAltitude(altitude, altimeter);
+    return {
+      altitude:altitude, altimeter:altimeter, oat:oat, pa:pa,
+      stdDev: oat - elStdTempC(pa),
+      da: elDensityAlt(pa, oat),
+      fairingsInstalled: document.getElementById('el-fairings-toggle').checked
+    };
+  }
+
+  // Same approach as N7154N's enforceLimits, against full-throttle MP
+  // instead of a recommended-limits line: adjust the dial the user didn't
+  // just move first, then the other one if that alone isn't enough. 10%
+  // power is reachable at any RPM in every condition, so it always lands.
+  function elEnforceLimits(changed){
+    elAdjusted = false;
+    var cond = elReadConditions();
+    var rpm = elRpmDial.get(), pct = elPctDial.get();
+    if(!elCompute(rpm, pct, cond).exceeds) return;
+    elAdjusted = true;
+    if(changed === 'rpm'){
+      pct = elSolvePctForLimit(rpm, cond);
+      elPctDial.set(pct, true);
+      if(elCompute(rpm, pct, cond).exceeds){
+        rpm = elSolveRpmForLimit(pct, cond);
+        elRpmDial.set(rpm, true);
+      }
+    } else {
+      rpm = elSolveRpmForLimit(pct, cond);
+      elRpmDial.set(rpm, true);
+      if(elCompute(rpm, pct, cond).exceeds){
+        pct = elSolvePctForLimit(rpm, cond);
+        elPctDial.set(pct, true);
+      }
+    }
+  }
+
+  function elRecompute(){
+    var cond = elReadConditions();
+    var outOfRange = cond.pa < 0 || cond.pa > EL_PA_MAX || cond.da < EL_DA_MIN || cond.da > EL_DA_MAX;
+    document.getElementById('el-conditions-card').classList.toggle('range-alert', outOfRange);
+
+    elEls['el-chips'].innerHTML =
+      '<span class="chip"><b class="num">'+fmt(cond.pa,0)+'</b><small>ft pressure alt.</small></span>' +
+      '<span class="chip"><b class="num">'+fmt(cond.da,0)+'</b><small>ft density alt.</small></span>' +
+      '<span class="chip"><b class="num">'+(cond.stdDev>=0?'+':'')+fmt(cond.stdDev,1)+'&deg;C</b><small>from standard temp</small></span>' +
+      (outOfRange ? '<span class="chip warn"><b>&#9888;</b><small>outside chart range &mdash; clamped to nearest edge</small></span>' : '');
+
+    var rpm = elRpmDial.get();
+    var pct = elPctDial.get();
+    var res = elCompute(rpm, pct, cond);
+    var ias = res.tasKt * Math.sqrt(densityRatio(cond.da));
+
+    elEls['el-hero-rpm'].innerHTML = rpm;
+    elEls['el-hero-mp'].innerHTML = fmt(res.mp,1) + '<span class="unit">inHg</span>';
+    elEls['el-hero-mp-sub'].textContent = Math.abs(res.tempCorr) < 0.05 ? 'standard temp' :
+      fmt(res.mpStd,1) + ' std ' + (res.tempCorr > 0 ? '+ ' : '− ') + fmt(Math.abs(res.tempCorr),1) + ' temp';
+    elEls['el-hero-ff'].innerHTML = fmt(res.ffGph,1) + '<span class="unit">GPH</span>';
+    elEls['el-hero-ff-rop'].textContent = '50°F ROP: ' + fmt(res.ffGph*EL_ROP_FF,1) + ' GPH, +' + EL_ROP_KT + ' kt';
+    elEls['el-hero-tas'].innerHTML = fmt(res.tasKt,0) + '<span class="unit">KTAS</span>';
+    elEls['el-hero-tas-note'].textContent = cond.fairingsInstalled ?
+      'wheel fairings installed' : 'fairings removed − 8 kt applied';
+    elEls['el-hero-ias'].innerHTML = fmt(ias,0) + '<span class="unit">KIAS</span>';
+
+    elEls['el-bezel-pill'].textContent = res.certified ? 'certified' : 'estimated';
+    elEls['el-bezel-pill'].className = 'pill ' + (res.certified ? 'good' : 'warn');
+
+    var note;
+    if(res.exceeds){
+      note = 'Not obtainable: needs ' + fmt(res.mp,1) + ' inHg, but full throttle gives only about ' +
+        fmt(res.ft,1) + ' inHg at this altitude and temperature — reduce % power or increase RPM.';
+    } else if(res.certified){
+      note = 'This exact combination is a certified POH power setting (Figure 5-25)' +
+        (Math.abs(res.tempCorr) < 0.05 ? '.' : ', with the POH’s 0.15 inHg per 5°C temperature correction applied.');
+    } else if(res.belowTable){
+      note = 'Below 55% power (shaded red on the dial) is off the POH table entirely — manifold pressure is extrapolated along each RPM’s 55–65% line. Treat it as a rough estimate.';
+    } else {
+      note = 'Estimated by interpolating between the POH table’s RPM columns and 55/65/75% power tables — not itself a tabulated value.';
+    }
+    if(elAdjusted){
+      note += ' The other dial was adjusted automatically — the requested setting needs more manifold pressure than full throttle can deliver here.';
+    } else if(!res.exceeds && res.ft - res.mp < 0.3){
+      note += ' At or near full throttle.';
+    }
+    if(res.clamped){
+      note += ' Conditions are outside the chart range, clamped to the nearest edge.';
+    }
+    elEls['el-hero-note'].textContent = note;
+    elEls['el-hero-note'].classList.toggle('warn', res.exceeds || res.belowTable);
+
+    var rows = '', anyFill = false, anyDash = false;
+    EL_PCTS.forEach(function(p){
+      var cells = '', first = null;
+      for(var r=EL_RPM_MIN; r<=EL_RPM_MAX; r+=100){
+        var rr = elCompute(r, p, cond);
+        if(!first) first = rr;
+        var cls = (p===pct && r===rpm) ? ' current-cell' : '';
+        var txt = '&mdash;';
+        if(rr.exceeds){
+          anyDash = true;
+        } else {
+          txt = fmt(rr.mp,1);
+          if(!rr.certified){ txt += '*'; anyFill = true; }
+        }
+        cells += '<td class="num'+cls+'">'+txt+'</td>';
+      }
+      var riias = first.tasKt * Math.sqrt(densityRatio(cond.da));
+      rows += '<tr class="'+(p===pct ? 'current' : '')+'">' +
+        '<td>'+p+'%</td>' + cells +
+        '<td class="num">'+fmt(first.ffGph,1)+'</td>' +
+        '<td class="num">'+fmt(first.tasKt,0)+'</td>' +
+        '<td class="num">'+fmt(riias,0)+'</td>' +
+        '</tr>';
+    });
+    elEls['el-table-body'].innerHTML = rows;
+    elEls['el-table-note'].textContent = (anyFill ?
+      '* Uses a cell the POH prints as “—” at standard temperature, reachable here because it’s colder than standard — estimated. ' : '') +
+      (anyDash ? '— = not obtainable at full throttle in these conditions.' : '');
+  }
+
+  elPopulateAltitude();
+  elOatDial = setupDial('el-oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, function(){
+    elEnforceLimits('pct');
+    elRecompute();
+  });
+  elAltimeterDial = setupDial('el-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, function(){
+    elSnapAltitudeInto(elAltitudeBounds());
+    elEnforceLimits('pct');
+    elRecompute();
+  });
+  elRpmDial = setupDial('el-rpm', {min:EL_RPM_MIN,max:EL_RPM_MAX,step:50,decimals:0,tickStep:50,value:2400}, function(){
+    elEnforceLimits('rpm');
+    elRecompute();
+  });
+  elPctDial = setupDial('el-pct', {min:10,max:75,step:5,decimals:0,tickStep:5,value:65,alertRange:[10,40]}, function(){
+    elEnforceLimits('pct');
+    elRecompute();
+  });
+
+  var elFairingsToggle = document.getElementById('el-fairings-toggle');
+  var elFairingsStateEl = document.getElementById('el-fairings-state');
+  elFairingsToggle.addEventListener('change', function(){
+    elFairingsStateEl.textContent = elFairingsToggle.checked ? 'Installed' : 'Removed';
+    elFairingsStateEl.classList.toggle('on', elFairingsToggle.checked);
+    elRecompute();
+  });
+
+  document.querySelectorAll('#el-preset-col .preset-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      elPctDial.set(parseInt(btn.getAttribute('data-pct'), 10), true);
+      elEnforceLimits('pct');
+      elRecompute();
+    });
+  });
+
+  elRecompute();
+
   // ---- Aircraft tab switching ----
   var PLANE_META = {
     n7154n: {
@@ -1726,13 +2404,22 @@
       badges: '<span class="badge">180 BHP rated, fixed-pitch prop</span>' +
         '<span class="badge">POH Section 5, VB-790</span>' +
         '<span class="badge">2550 lb gross wt</span>'
+    },
+    n114el: {
+      tail: 'N114EL',
+      h1: 'Power Setting Calculator',
+      subhead: 'Piper PA&#8209;32&#8209;301 Saratoga &middot; Lycoming IO&#8209;540&#8209;K',
+      badges: '<span class="badge">300 BHP rated @ 2700 RPM</span>' +
+        '<span class="badge">POH Section 5, VB-1060</span>' +
+        '<span class="badge">3600 lb gross wt</span>'
     }
   };
+  var PLANES = ['n7154n', 'n3008u', 'n114el'];
   function selectPlane(plane){
-    document.getElementById('page-n7154n').classList.toggle('active', plane==='n7154n');
-    document.getElementById('page-n3008u').classList.toggle('active', plane==='n3008u');
-    document.getElementById('tab-n7154n').classList.toggle('active', plane==='n7154n');
-    document.getElementById('tab-n3008u').classList.toggle('active', plane==='n3008u');
+    PLANES.forEach(function(p){
+      document.getElementById('page-'+p).classList.toggle('active', plane===p);
+      document.getElementById('tab-'+p).classList.toggle('active', plane===p);
+    });
     var meta = PLANE_META[plane];
     document.getElementById('tail-label').innerHTML = meta.tail;
     document.getElementById('page-h1').textContent = meta.h1;
@@ -1740,11 +2427,12 @@
     document.getElementById('page-badges').innerHTML = meta.badges;
     try{ localStorage.setItem('aircraft-power-settings-plane', plane); }catch(e){}
   }
-  document.getElementById('tab-n7154n').addEventListener('click', function(){ selectPlane('n7154n'); });
-  document.getElementById('tab-n3008u').addEventListener('click', function(){ selectPlane('n3008u'); });
+  PLANES.forEach(function(p){
+    document.getElementById('tab-'+p).addEventListener('click', function(){ selectPlane(p); });
+  });
   var savedPlane = null;
   try{ savedPlane = localStorage.getItem('aircraft-power-settings-plane'); }catch(e){}
-  if(savedPlane === 'n3008u') selectPlane('n3008u');
+  if(savedPlane && savedPlane !== 'n7154n' && PLANES.indexOf(savedPlane) >= 0) selectPlane(savedPlane);
 })();
 </script>
 
