@@ -570,7 +570,7 @@
 
       </div>
 
-      <p class="limit-msg" id="rpm-limit-msg" role="status" aria-live="polite"></p>
+      <p class="limit-msg" id="limit-msg" role="status" aria-live="polite"></p>
 
       <div class="bezel">
         <p class="bezel-title">Computed setting <span class="pill" id="bezel-pill"></span></p>
@@ -652,11 +652,19 @@
       below normal for that power are already at full throttle, and they give one manifold pressure per altitude
       (23.1, 21.7, 20.1, 18.6, 17.3, and 16.2&nbsp;inHg at 6,000&ndash;16,000&nbsp;ft), scaled by standard
       pressure below 6,000&nbsp;ft.</p>
-      <p><b>Turning the RPM dial never changes % power.</b> Lowering RPM at a fixed power needs more manifold
-      pressure; if the new RPM would need more than either limit allows, or you push past either end of the
-      dial, the RPM stops at the lowest setting that still works and the pane says the RPM is at a limit.
-      Changing % power works the other way: if the new power needs more manifold pressure than the limits allow,
-      RPM is raised to make room, and % power is only pulled back if even 2450&nbsp;RPM isn't enough.</p>
+      <p><b>Full-throttle power.</b> Above roughly 6,000&nbsp;ft the 75% table's fuel flow drops below its
+      normal 13.4&nbsp;GPH: those printed settings are already at full throttle and making less than 75% (at a
+      constant fuel burn per horsepower, 9.6&nbsp;GPH at 16,000&nbsp;ft is about 54%). At full throttle, power
+      scales with RPM, so the app estimates the most power full throttle can make at any RPM from those fuel
+      flows (this lands within 1.5 percentage points of the 55%/2300&nbsp;RPM table's own full-throttle cells). Estimated
+      settings above that aren't obtainable. The POH's own printed settings are always shown as printed; when
+      one is a full-throttle entry, the note under the readout gives the actual power its fuel flow implies.</p>
+      <p><b>Turning the RPM dial never changes % power.</b> If a lower RPM would put the current power out of
+      limits, or you push past either end of the dial, the RPM stops at the last setting that still works and
+      the pane says the RPM is at a limit. <b>When % power, altitude, temperature, or altimeter setting
+      changes</b> and the setting goes out of limits, the app fixes it and says what it changed: over the
+      pg&nbsp;5&#8209;26 ceiling, RPM is raised first; not obtainable at this altitude, % power is limited at the
+      current RPM (the message says if a higher RPM would allow it).</p>
       <p><b>Indicated airspeed</b> is not tabulated in the POH chart &mdash; it's derived from the tabulated
       TAS using the standard density-altitude correction (KIAS &asymp; KTAS &times; &radic;&sigma;), which
       ignores position error and is only an estimate.</p>
@@ -1280,9 +1288,48 @@
     return FT_MP[i] + t*(FT_MP[i+1]-FT_MP[i]);
   }
 
-  // The tighter of the pg 5-26 recommended ceiling and what full throttle can deliver.
-  function limitMP(rpm, cond){ return Math.min(ceilingMP(rpm), fullThrottleMP(cond.pa)); }
-  function withinLimits(rpm, pct, cond){ return computeCustom(rpm, pct, cond).mp <= limitMP(rpm, cond) + 0.05; }
+  // Most % power full throttle can make at this RPM. Above roughly 6,000 ft the
+  // 75% table's fuel flow drops below its normal 13.4 GPH: those settings are
+  // already at full throttle and making less than 75% (at constant BSFC, power
+  // scales with fuel flow -- e.g. 9.6 GPH at 16,000 ft is about 54%). At a
+  // fixed full-throttle MP, power scales with RPM. The same scaling matches the
+  // 55% / 2300 RPM table's own full-throttle cells to within 1.5 points. Where
+  // the 75% table shows no shortfall this isn't the binding limit (the MP
+  // checks are), so it returns Infinity.
+  var FF_NORMAL = {55:9.8, 65:11.5, 75:13.4};
+  function fullThrottlePct(rpm, cond){
+    var ff75 = lookup(75, cond.pa, cond.isaDev).ffGph;
+    if(ff75 >= FF_NORMAL[75] - 0.01) return Infinity;
+    return 75 * (ff75/FF_NORMAL[75]) * (rpm/2450);
+  }
+
+  // Which limit, if any, an (rpm, % power) pair breaks: the pg 5-26 ceiling,
+  // full-throttle MP, or full-throttle power. The POH's own certified settings
+  // are always shown as printed, so they never break one.
+  function limitStatus(rpm, pct, cond){
+    var res = computeCustom(rpm, pct, cond);
+    var st = {mp:res.mp, ceiling:ceilingMP(rpm), ft:fullThrottleMP(cond.pa), pmax:fullThrottlePct(rpm, cond), reason:null};
+    if(res.exact) return st;
+    if(st.mp > st.ceiling + 0.05) st.reason = 'ceiling';
+    else if(st.mp > st.ft + 0.05) st.reason = 'mp';
+    else if(pct > st.pmax + 0.25) st.reason = 'power';
+    return st;
+  }
+  function withinLimits(rpm, pct, cond){ return !limitStatus(rpm, pct, cond).reason; }
+  // Why an (rpm, % power) pair is out of limits, as a sentence fragment.
+  function limitReason(rpm, pct, cond){
+    var st = limitStatus(rpm, pct, cond);
+    if(st.reason === 'ceiling'){
+      return 'it would need about ' + fmt(st.mp,1) + ' inHg, over the recommended maximum of ' +
+        fmt(st.ceiling,1) + ' inHg at ' + rpm + ' RPM (Section V pg 5-26)';
+    }
+    if(st.reason === 'mp'){
+      return 'it would need about ' + fmt(st.mp,1) + ' inHg, more than full throttle can deliver at this altitude (about ' +
+        fmt(st.ft,1) + ' inHg)';
+    }
+    return 'at this altitude full throttle only makes about ' + fmt(st.pmax,0) + '% power at ' + rpm +
+      ' RPM (from the POH\u2019s full-throttle fuel flows)';
+  }
 
   function interpTriple(v55, v65, v75, p){
     if(p <= 65){ var t = (p-55)/(65-55); return v55 + t*(v65-v55); }
@@ -1337,41 +1384,21 @@
     };
   }
 
-  // Highest % power at this RPM that stays at or under the MP limit. mp(pct)
-  // is monotonic but has a kink at 55% (cruise-range model above,
-  // idle-anchored model below), so this binary searches rather than solving
-  // a single line like the old 40-75%-only version did.
-  function solvePctForLimit(rpm, cond){
-    var ceiling = limitMP(rpm, cond);
-    function excess(pct){ return computeCustom(rpm, pct, cond).mp - ceiling; }
-    if(excess(PCT_MIN) > 0.05) return PCT_MIN;
-    if(excess(PCT_MAX) <= 0.05) return PCT_MAX;
-    var lo = PCT_MIN, hi = PCT_MAX;
-    for(var i=0; i<24; i++){
-      var mid = (lo+hi)/2;
-      if(excess(mid) > 0.05) hi = mid; else lo = mid;
-    }
-    // Round DOWN to the step grid -- rounding to nearest can land just past
-    // the true crossing point and put the "corrected" value over the ceiling.
-    return clamp(Math.floor(lo/5)*5, PCT_MIN, PCT_MAX);
+  // Highest % power, at or below pct on the 5% grid, that's within limits at
+  // this RPM. A scan rather than a bisection: the certified POH settings are
+  // exempt from the limits, so feasibility isn't monotonic in % power.
+  function solvePctForLimit(rpm, pct, cond){
+    for(var p=pct; p>PCT_MIN; p-=5){ if(withinLimits(rpm, p, cond)) return p; }
+    return PCT_MIN;
   }
 
-  // Lowest RPM that brings this % power back at or under the MP limit
-  // (raising RPM both lowers required MP and raises the pg 5-26 ceiling;
-  // full-throttle MP doesn't depend on RPM). Binary search since both
-  // mp(rpm) and the limit move with rpm.
-  function solveRpmForLimit(pct, cond){
-    function excess(rpm){ return computeCustom(rpm, pct, cond).mp - limitMP(rpm, cond); }
-    var lo = 1800, hi = 2450;
-    if(excess(hi) > 0) return hi;
-    if(excess(lo) <= 0) return lo;
-    for(var i=0; i<24; i++){
-      var mid = (lo+hi)/2;
-      if(excess(mid) > 0) lo = mid; else hi = mid;
+  // Lowest RPM from fromRpm up (50 RPM grid) that keeps this % power under
+  // the pg 5-26 ceiling, or null if even 2450 doesn't.
+  function rpmForCeiling(pct, fromRpm, cond){
+    for(var r=fromRpm; r<=2450; r+=50){
+      if(limitStatus(r, pct, cond).reason !== 'ceiling') return r;
     }
-    // Round UP to the step grid -- rounding to nearest can land just short of
-    // the true crossing point and leave the "corrected" value over the ceiling.
-    return clamp(Math.ceil(hi/50)*50, 1800, 2450);
+    return null;
   }
 
   // Matches the POH's own "standard day" column exactly (17°C SL, -2.0°C/1000ft),
@@ -1612,14 +1639,14 @@
     }
     sel.addEventListener('change', function(){
       document.getElementById('altitude-display').textContent = parseFloat(sel.value).toLocaleString();
-      rpmLimitMsg = '';
       snapAltimeterInto(altimeterBoundsFn());
+      limitMsg = enforceLimits();
       recompute();
     });
   }
 
   var els = {};
-  ['chips', 'bezel-pill', 'rpm-limit-msg',
+  ['chips', 'bezel-pill', 'limit-msg',
    'hero-rpm','hero-mp','hero-ff','hero-ff-psi','hero-tas','hero-tas-mph','hero-ias','hero-note',
    'table-body'
   ].forEach(function(id){ els[id] = document.getElementById(id); });
@@ -1651,14 +1678,10 @@
     var rpm = rpmDial.get();
     var pct = pctDial.get();
     var res = computeCustom(rpm, pct, cond);
-    var ceiling = ceilingMP(rpm);
-    var fullThrottle = fullThrottleMP(cond.pa);
-    var exceedsCeiling = res.mp > ceiling + 0.05;
-    var exceedsFullThrottle = res.mp > fullThrottle + 0.05;
-    var exceeds = exceedsCeiling || exceedsFullThrottle;
+    var exceeds = !withinLimits(rpm, pct, cond);
     var ias = res.tasKt * Math.sqrt(densityRatio(cond.da));
     lastRpm = rpm;
-    els['rpm-limit-msg'].textContent = rpmLimitMsg;
+    els['limit-msg'].textContent = limitMsg;
 
     els['hero-rpm'].innerHTML = rpm;
     els['hero-mp'].innerHTML = fmt(res.mp,1) + '<span class="unit">inHg</span>';
@@ -1672,14 +1695,16 @@
     els['bezel-pill'].className = 'pill ' + (res.exact ? 'good' : 'warn');
 
     var note;
-    if(exceedsCeiling){
-      note = 'Exceeds the recommended manifold pressure for cruise at ' + rpm + ' RPM (chart max ' +
-        fmt(ceiling,1) + ' inHg, Section V pg 5-26) — reduce % power or increase RPM.';
-    } else if(exceedsFullThrottle){
-      note = 'Not obtainable: needs ' + fmt(res.mp,1) + ' inHg, but full throttle gives only about ' +
-        fmt(fullThrottle,1) + ' inHg at this altitude — reduce % power or increase RPM.';
+    if(exceeds){
+      note = 'Out of limits: ' + limitReason(rpm, pct, cond) + ' — reduce % power or increase RPM.';
     } else if(res.exact){
       note = 'This exact combination is a certified POH cruise power setting.';
+      // The POH lists its 65/75% settings at full throttle once they can't be
+      // reached; the lower fuel flow it prints shows the real power.
+      if(res.ffGph < FF_NORMAL[pct] - 0.01){
+        note += ' The POH lists it at full throttle here — its ' + fmt(res.ffGph,1) +
+          ' GPH fuel flow means about ' + fmt(pct*res.ffGph/FF_NORMAL[pct],0) + '% actual power.';
+      }
     } else {
       note = 'Estimated by interpolating between the certified 55/65/75% settings — not itself a tabulated POH value.';
     }
@@ -1706,82 +1731,86 @@
     els['table-body'].innerHTML = rows;
   }
 
-  // Last RPM shown (recompute keeps it current) and the RPM-limit message, if
-  // the last RPM change was refused.
-  var lastRpm = 2450, rpmLimitMsg = '';
+  // Last RPM shown (recompute keeps it current), and the message explaining
+  // the last automatic limit (empty when nothing was limited).
+  var lastRpm = 2450, limitMsg = '';
 
   populateAltitude();
   oatDial = setupDial('oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, function(){
-    rpmLimitMsg = '';
     snapAltitudeInto(altitudeBoundsFn());
+    limitMsg = enforceLimits();
     recompute();
   });
   altimeterDial = setupDial('altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, function(){
-    rpmLimitMsg = '';
     snapAltitudeInto(altitudeBoundsFn());
+    limitMsg = enforceLimits();
     recompute();
   });
-  // After a % power change, brings (rpm, pct) back within the MP limit
-  // (pg 5-26 ceiling and full throttle): raises RPM first, and only if even
-  // 2450 RPM isn't enough, pulls % power back too. 2450 RPM @ 40% power is
-  // within limits for every altitude/ISA condition, so this always has
-  // somewhere valid to land.
+
+  // After a % power or conditions change, brings (rpm, pct) back within
+  // limits and returns a message saying what it changed ('' if nothing).
+  // Over the pg 5-26 ceiling, RPM is raised first (that's what the chart
+  // calls for). Not obtainable at this altitude -- needing more MP than full
+  // throttle gives, or more power than full throttle makes -- % power is
+  // limited at the current RPM. 2450 RPM @ 40% power is within every limit
+  // at every altitude/ISA condition, so this always lands somewhere valid.
   function enforceLimits(){
     var cond = readConditions();
-    var rpm = rpmDial.get(), pct = pctDial.get();
-    if(withinLimits(rpm, pct, cond)) return;
-    rpm = solveRpmForLimit(pct, cond);
-    rpmDial.set(rpm, true);
-    if(!withinLimits(rpm, pct, cond)){
-      pct = solvePctForLimit(rpm, cond);
-      pctDial.set(pct, true);
+    var rpm0 = rpmDial.get(), pct0 = pctDial.get();
+    if(withinLimits(rpm0, pct0, cond)) return '';
+    var rpm = rpm0, msg = '';
+    if(limitStatus(rpm0, pct0, cond).reason === 'ceiling'){
+      var raised = rpmForCeiling(pct0, rpm0, cond);
+      rpm = raised === null ? 2450 : raised;
+      rpmDial.set(rpm, true);
+      if(withinLimits(rpm, pct0, cond)){
+        return 'RPM raised to ' + rpm + ' so ' + pct0 + '% power stays under the recommended maximum manifold pressure (Section V pg 5-26).';
+      }
+      msg = 'RPM raised to ' + rpm + '. ';
     }
+    var why = limitReason(rpm, pct0, cond);
+    var pct = solvePctForLimit(rpm, pct0, cond);
+    pctDial.set(pct, true);
+    msg += '% power limited to ' + pct + '%: ' + pct0 + '% isn\u2019t obtainable at ' + rpm + ' RPM — ' + why + '.';
+    for(var r=rpm+50; r<=2450; r+=50){
+      if(withinLimits(r, pct0, cond)){ msg += ' Raising RPM to ' + r + ' would allow ' + pct0 + '%.'; break; }
+    }
+    return msg;
   }
 
   // RPM changes never touch % power. A change past either end of the dial,
-  // or down to an RPM where this % power would need more MP than the pg 5-26
-  // ceiling allows or full throttle can deliver, is refused: the dial stops at
-  // the lowest RPM that still works (never above where it was) and the pane
-  // says the RPM is at a limit. Raising RPM is always allowed -- it only ever
-  // lowers the MP needed, so it can't move a setting further out of limits.
+  // or down to an RPM where this % power is out of limits (over the pg 5-26
+  // ceiling, or more MP or power than full throttle gives at this altitude),
+  // is refused: the dial stops at the last RPM on the way down that still
+  // works and the pane says the RPM is at a limit. Raising RPM is always
+  // allowed.
   rpmDial = setupDial('rpm', {min:1800,max:2450,step:50,decimals:0,tickStep:50,value:2450}, function(rpm, requested){
     var cond = readConditions(), pct = pctDial.get();
-    rpmLimitMsg = '';
+    limitMsg = '';
     if(requested > 2450 + 1e-6){
-      rpmLimitMsg = 'RPM is at its limit: 2450 RPM is the highest cruise RPM in the POH tables.';
+      limitMsg = 'RPM is at its limit: 2450 RPM is the highest cruise RPM in the POH tables.';
     } else if(requested < 1800 - 1e-6){
-      rpmLimitMsg = 'RPM is at its limit: 1800 RPM is the lowest RPM this calculator covers.';
+      limitMsg = 'RPM is at its limit: 1800 RPM is the lowest RPM this calculator covers.';
     } else if(rpm < lastRpm && !withinLimits(rpm, pct, cond)){
-      var stop = Math.min(lastRpm, solveRpmForLimit(pct, cond));
+      var stop = lastRpm;
+      while(stop-50 > rpm && withinLimits(stop-50, pct, cond)) stop -= 50;
       rpmDial.set(stop, true);
-      // Name whichever limit is crossed on the first step below the stop.
-      var probe = Math.max(stop - 50, rpm);
-      var mpProbe = computeCustom(probe, pct, cond).mp;
-      if(mpProbe > fullThrottleMP(cond.pa) + 0.05){
-        rpmLimitMsg = 'RPM is at its limit for ' + pct + '% power: below ' + stop + ' RPM it would need about ' +
-          fmt(mpProbe,1) + ' inHg, more than full throttle can deliver at this altitude (about ' +
-          fmt(fullThrottleMP(cond.pa),1) + ' inHg).';
-      } else {
-        rpmLimitMsg = 'RPM is at its limit for ' + pct + '% power: below ' + stop + ' RPM it would need about ' +
-          fmt(mpProbe,1) + ' inHg, over the recommended maximum of ' + fmt(ceilingMP(probe),1) +
-          ' inHg at ' + probe + ' RPM (Section V pg 5-26).';
-      }
+      limitMsg = 'RPM is at its limit for ' + pct + '% power: below ' + stop + ' RPM ' +
+        limitReason(stop-50, pct, cond) + '.';
     }
     recompute();
   });
   pctDial = setupDial('pct', {min:10,max:75,step:5,decimals:0,tickStep:5,value:65,alertRange:[10,40]}, function(){
-    rpmLimitMsg = '';
-    enforceLimits();
+    limitMsg = enforceLimits();
     recompute();
   });
 
   document.querySelectorAll('#preset-col .preset-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var p = parseInt(btn.getAttribute('data-pct'), 10);
-      rpmLimitMsg = '';
       rpmDial.set(DATA[p].rpm, true);
       pctDial.set(p, true);
-      enforceLimits();
+      limitMsg = enforceLimits();
       recompute();
     });
   });

@@ -69,13 +69,29 @@ two limits:
   16.2 inHg at 6,000–16,000 ft. Below 6,000 ft that value is scaled by standard pressure.
   Every printed MP is at or under this line.
 
-**Turning the RPM dial never changes % power.** Lower RPM at the same power needs more
-MP. If the new RPM would need more than either limit allows, the RPM stops at the lowest
-setting that still works and the cruise power pane shows a message saying the RPM is at a
-limit and which one. Pushing past either end of the dial (1800 or 2450 RPM) shows the same
-kind of message. Raising RPM is always allowed. Changing **% power** works the other way:
-if the new power needs more MP than the limits allow, RPM is raised to make room, and %
-power is only pulled back if even 2450 RPM isn't enough.
+There's also a **full-throttle power** limit. Above roughly 6,000 ft the 75% table's fuel
+flow drops below its normal 13.4 GPH. Those printed settings are already at full throttle
+and making less than 75%: at a constant fuel burn per horsepower, 9.6 GPH at 16,000 ft is
+about 54%. At full throttle, power scales with RPM, so the app estimates the most power
+full throttle can make at any RPM from those fuel flows. That lands within 1.5 percentage
+points of the 55% / 2300 RPM table's own full-throttle cells. Estimated settings above it
+aren't obtainable. This also covers a gap in the MP estimate at altitude: where the 65% and
+75% tables share one full-throttle MP, the estimate *falls* as RPM drops, so the MP checks
+alone wouldn't catch it. The POH's own printed settings are always shown as printed. When
+one is a full-throttle entry, the readout's note gives the actual power its fuel flow
+implies.
+
+**Turning the RPM dial never changes % power.** If a lower RPM would put the current power
+out of limits, the RPM stops at the last setting on the way down that still works. The
+cruise power pane shows a message saying the RPM is at a limit and which one. Pushing past
+either end of the dial (1800 or 2450 RPM) shows the same kind of message. Raising RPM is
+always allowed.
+
+**Changing % power, altitude, temperature, or altimeter setting** can also put the setting
+out of limits. The app then fixes it and shows a message saying what it changed. Over the
+pg 5-26 ceiling, RPM is raised first. If the setting isn't obtainable at this altitude, %
+power is limited at the current RPM to the highest step that is, and the message says if
+a higher RPM would allow the requested power.
 
 RPM/% power combinations that exactly match a certified table entry (2300 RPM @ 55%, or
 2450 RPM @ 65%/75%) reproduce the tabulated manifold pressure, fuel flow, and TAS exactly.
