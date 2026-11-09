@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aircraft Power Settings</title>
-<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), interpolated from each aircraft's certified POH performance charts.">
+<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), plus N114EL takeoff distance, interpolated from each aircraft's certified POH performance charts.">
 <meta name="theme-color" content="#12161B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -435,6 +435,7 @@
         <button type="button" class="plane-tab active" id="tab-n7154n" data-plane="n7154n">N7154N</button>
         <button type="button" class="plane-tab" id="tab-n3008u" data-plane="n3008u">N3008U</button>
         <button type="button" class="plane-tab" id="tab-n114el" data-plane="n114el">N114EL</button>
+        <button type="button" class="plane-tab" id="tab-n114el-to" data-plane="n114el-to">N114EL T/O</button>
       </div>
     </div>
     <h1 id="page-h1">Power Setting Calculator</h1>
@@ -1154,6 +1155,221 @@
       <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check any RPM, manifold
       pressure, mixture, or airspeed setting against N114EL's current, complete Pilot's Operating Handbook
       and the aircraft's actual weight before using it in flight.</span>
+    </div>
+  </section>
+
+</div>
+
+<div class="page" id="page-n114el-to">
+
+  <section id="to-conditions">
+    <p class="section-label">Conditions</p>
+    <div class="card" id="to-conditions-card">
+      <div class="cond-grid">
+
+        <div class="cond-cell cond-altitude">
+          <span class="dial-caption">Field Elevation</span>
+          <div class="gauge select-face" id="to-elev-face">
+            <span class="select-value"><span id="to-elev-display">1,000</span></span>
+            <span class="dial-unit">FT</span>
+            <span class="select-chevron">&#9662;</span>
+            <select id="to-in-elev" class="native-select" aria-label="Field elevation"></select>
+          </div>
+          <span class="dial-hint">pressure altitude corrected below</span>
+        </div>
+
+        <div class="cond-cell cond-temp">
+          <span class="dial-caption">Outside Air Temp</span>
+          <div class="gauge dial" id="dial-to-oat" tabindex="0" role="slider"
+               aria-label="Outside air temperature" aria-valuemin="-40" aria-valuemax="40" aria-valuenow="15">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">15</span>
+              <span class="dial-unit">&deg;C</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="to-oat" data-dir="-1" aria-label="Decrease temperature">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="to-oat" data-dir="1" aria-label="Increase temperature">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell cond-altimeter">
+          <span class="dial-caption">Altimeter Setting</span>
+          <div class="gauge dial" id="dial-to-altimeter" tabindex="0" role="slider"
+               aria-label="Altimeter setting" aria-valuemin="28" aria-valuemax="31" aria-valuenow="29.92">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">29.92</span>
+              <span class="dial-unit">inHg</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="to-altimeter" data-dir="-1" aria-label="Decrease altimeter setting">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="to-altimeter" data-dir="1" aria-label="Increase altimeter setting">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="derived-chips" id="to-chips"></div>
+    </div>
+  </section>
+
+  <section id="to-takeoff">
+    <p class="section-label">Maximum effort takeoff &middot; flaps 25&deg;</p>
+    <div class="card">
+      <div class="power-grid">
+
+        <div class="cond-cell">
+          <span class="dial-caption">Gross Weight</span>
+          <div class="gauge dial" id="dial-to-weight" tabindex="0" role="slider"
+               aria-label="Gross weight" aria-valuemin="2600" aria-valuemax="3600" aria-valuenow="3600">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">3600</span>
+              <span class="dial-unit">LB</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="to-weight" data-dir="-1" aria-label="Decrease weight">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="to-weight" data-dir="1" aria-label="Increase weight">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell switch-cell">
+          <span class="dial-caption">Propeller</span>
+          <label class="switch">
+            <input type="checkbox" id="to-prop-toggle" checked
+                   aria-label="Three-blade propeller">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+          <span class="switch-state on" id="to-prop-state">3-Blade</span>
+        </div>
+
+        <div class="cond-cell">
+          <span class="dial-caption">Wind Component</span>
+          <div class="gauge dial" id="dial-to-wind" tabindex="0" role="slider"
+               aria-label="Wind component, headwind positive" aria-valuemin="-5" aria-valuemax="15" aria-valuenow="0">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">0</span>
+              <span class="dial-unit" id="to-wind-unit">KT</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="to-wind" data-dir="-1" aria-label="Less headwind">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="to-wind" data-dir="1" aria-label="More headwind">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="limit-msg" id="to-limit-msg" role="status" aria-live="polite"></p>
+
+      <div class="bezel">
+        <p class="bezel-title">Takeoff performance <span class="pill" id="to-bezel-pill"></span></p>
+        <div class="bezel-grid">
+          <div class="bezel-item">
+            <span class="lbl">Over 50 ft Barrier</span>
+            <span class="val mono" id="to-hero-dist">&mdash;<span class="unit">FT</span></span>
+            <span class="sub" id="to-hero-dist-alt"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Liftoff Speed</span>
+            <span class="val mono small" id="to-hero-liftoff">&mdash;<span class="unit">KIAS</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Barrier Speed</span>
+            <span class="val mono small" id="to-hero-barrier">&mdash;<span class="unit">KIAS</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Density Altitude</span>
+            <span class="val mono small" id="to-hero-da">&mdash;<span class="unit">FT</span></span>
+          </div>
+        </div>
+        <p class="bezel-note" id="to-hero-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="to-table">
+    <p class="section-label">Takeoff distance over 50 ft at these conditions</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Weight</th>
+            <th rowspan="2">Liftoff</th>
+            <th rowspan="2">Barrier</th>
+            <th colspan="5" class="th-group">Distance (ft) by wind component (kt)</th>
+          </tr>
+          <tr>
+            <th>5 tail</th><th>0</th><th>5 head</th><th>10 head</th><th>15 head</th>
+          </tr>
+        </thead>
+        <tbody id="to-table-body"></tbody>
+      </table>
+    </div>
+    <p class="table-note" id="to-table-note"></p>
+  </section>
+
+  <section id="to-source">
+    <p class="section-label">Data source</p>
+    <details class="source" id="to-source-details">
+      <summary>How these numbers are calculated <span class="chev">&#9656;</span></summary>
+      <p>Digitized from the <b>Maximum Effort Takeoff Performance &mdash; Flaps 25&deg;</b> chart, PA&#8209;32&#8209;301
+      Saratoga Pilot's Operating Handbook, Section 5 Performance, Figure 5&#8209;15 (Report VB&#8209;1060, issued
+      1/9/1980, revised 8/4/1982). Associated conditions: <b>2700 RPM and full throttle before brake release, paved,
+      level, dry runway</b>. The chart gives distance to clear a <b>50 ft barrier</b>; it doesn't give ground roll.</p>
+      <p>The app follows the chart's three steps the way you would read it. <b>Temperature and pressure
+      altitude:</b> each of the six pressure&#8209;altitude curves (sea level to 10,000&nbsp;ft) was traced off a 600&nbsp;dpi
+      scan and fit as a smooth curve against OAT (typically within 5&nbsp;ft of the traced line); altitudes between
+      curves are interpolated. <b>Weight:</b> the seven straight guide lines from the 3,600&nbsp;lb reference line to
+      2,600&nbsp;lb were traced, and the app interpolates between neighbouring lines. <b>Wind:</b> likewise for the
+      eight headwind lines (to 15&nbsp;kt) and seven tailwind lines (to 5&nbsp;kt) from the zero&#8209;wind
+      reference line. The result is read on the <b>3&#8209;blade</b> scale; the chart's separate <b>2&#8209;blade</b>
+      scale is a straight conversion of it (about 11% longer), and the <b>Propeller</b> switch picks which one is
+      shown.</p>
+      <p>Checked against the chart's own worked example &mdash; 1,200&nbsp;ft, 16&deg;C, 3,480&nbsp;lb, 10&nbsp;kt
+      headwind: the chart's arrows read about 1,780&nbsp;ft after the first step, 1,690 after weight, and
+      1,450&nbsp;ft (3&#8209;blade) at the end; the app gives 1,784, 1,699, and 1,463. The example prints
+      1,600&nbsp;ft for the 2&#8209;blade prop, where its arrow actually meets the 2&#8209;blade scale at about
+      1,620; the app gives 1,636. Expect the same few&#8209;percent reading tolerance you'd get using the chart by
+      hand, and treat every number here as <b>estimated</b>.</p>
+      <p><b>Liftoff and barrier speeds</b> come from the chart's table (66/71&nbsp;KIAS at 3,600&nbsp;lb down to
+      58/61 at 2,600&nbsp;lb), interpolated by weight.</p>
+      <p><b>Limits:</b> the chart covers sea level to 10,000&nbsp;ft pressure altitude, &minus;40 to +40&deg;C,
+      2,600&ndash;3,600&nbsp;lb, up to 15&nbsp;kt headwind or 5&nbsp;kt tailwind, and its curves stop at about
+      4,300&nbsp;ft on the first step. Outside that the app shows no distance rather than extrapolate. A pressure
+      altitude below sea level uses the sea&#8209;level curve, which slightly overstates the distance.</p>
+    </details>
+  </section>
+
+  <section id="to-notes">
+    <div class="disclaimer">
+      <span>&#9888;&#65039;</span>
+      <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check takeoff performance against
+      N114EL's current, complete Pilot's Operating Handbook, the actual runway surface and slope, and the aircraft's
+      actual weight, and add your own safety margin. The chart assumes a paved, level, dry runway and maximum
+      effort technique.</span>
     </div>
   </section>
 
@@ -2673,6 +2889,200 @@
 
   elRecompute();
 
+  // ============================================================
+  // N114EL takeoff -- PA-32-301 maximum effort takeoff, flaps 25
+  // ============================================================
+  //
+  // Digitized from POH Section 5 Figure 5-15 (Report VB-1060), a three-step
+  // nomograph: OAT x pressure altitude -> distance at 3600 lb and zero wind,
+  // then weight guide lines, then wind guide lines, read on the 3-blade
+  // propeller scale (the 2-blade scale is a linear conversion of it). Every
+  // distance below is in feet on that 3-blade scale until the last step.
+
+  // Step 1: each pressure-altitude curve, ln(distance) as a cubic in OAT (C),
+  // fit to its trace off a 600 dpi scan (residuals ~5 ft). Altitudes between
+  // curves interpolate linearly; the curves stop at the top of the chart,
+  // about 4,300 ft.
+  var TO_OAT_CURVES = {
+    0: [5.7818844e-08, -1.4056428e-05, 0.0079920411, 7.2597101],
+    2000: [8.2446495e-08, -3.1980383e-06, 0.0086346654, 7.4118543],
+    4000: [3.523796e-07, 1.4116402e-05, 0.0096588824, 7.5885188],
+    6000: [6.9579963e-07, 4.3295009e-05, 0.011146489, 7.8034894],
+    8000: [9.3806084e-07, 7.9666485e-05, 0.014604556, 8.0809571],
+    10000: [2.5620387e-06, 0.00024276592, 0.02212544, 8.4493392]
+  };
+  var TO_PAS = [0, 2000, 4000, 6000, 8000, 10000];
+  var TO_STEP1_MAX = 4300;
+  // Steps 2 and 3: the chart's straight guide lines, each as [distance at the
+  // reference line, distance at the far end] -- 3600 -> 2600 lb, 0 -> 15 kt
+  // headwind, 0 -> 5 kt tailwind. Between lines the app interpolates; below
+  // the lowest it scales proportionally from it.
+  var TO_WEIGHT_LINES = [[1024.1,625.5],[1585.8,940.9],[2099.4,1286.2],[2642.3,1599.1],[3198.6,1930.1],[3748.5,2197.6],[4261.1,2571.0]];
+  var TO_HEAD_LINES = [[498.5,416.8],[1009.4,827.3],[1565.5,1236.6],[2113.8,1685.4],[2642.7,2102.9],[3177.6,2498.2],[3714.9,2903.2],[4277.8,3275.5]];
+  var TO_TAIL_LINES = [[493.7,623.1],[1007.9,1217.2],[1560.2,1818.9],[2102.2,2451.8],[2642.9,3092.7],[3178.6,3717.4],[3699.2,4363.8]];
+  // 2-blade scale = 1.1105 x 3-blade + 11 ft (fit to its six labeled ticks, within 12 ft).
+  function toTwoBlade(d){ return 1.1105*d + 11.2; }
+  // Liftoff / barrier speeds (KIAS) from the chart's table.
+  var TO_SPEEDS = [[2600,58,61],[2800,60,63],[3000,61,65],[3200,63,67],[3400,64,69],[3600,66,71]];
+
+  function toCurve(pa, t){
+    var c = TO_OAT_CURVES[pa];
+    return Math.exp(((c[0]*t + c[1])*t + c[2])*t + c[3]);
+  }
+  function toStep1(pa, t){
+    var p = clamp(pa, 0, 10000);
+    var i = Math.min(Math.floor(p/2000), TO_PAS.length-2), f = (p - TO_PAS[i])/2000;
+    return (1-f)*toCurve(TO_PAS[i], t) + f*toCurve(TO_PAS[i+1], t);
+  }
+  function toGuide(lines, d0, frac){
+    function at(i){ return lines[i][0] + (lines[i][1]-lines[i][0])*frac; }
+    var n = lines.length;
+    if(d0 <= lines[0][0]) return at(0) * d0/lines[0][0];
+    if(d0 >= lines[n-1][0]) return at(n-1) * d0/lines[n-1][0];
+    var i = 0;
+    while(i < n-2 && lines[i+1][0] <= d0) i++;
+    var g = (d0 - lines[i][0])/(lines[i+1][0] - lines[i][0]);
+    return (1-g)*at(i) + g*at(i+1);
+  }
+  function toSpeeds(w){
+    var s = TO_SPEEDS, wc = clamp(w, 2600, 3600), i = 0;
+    while(i < s.length-2 && s[i+1][0] < wc) i++;
+    var f = (wc - s[i][0])/(s[i+1][0] - s[i][0]);
+    return {liftoff: s[i][1] + f*(s[i+1][1]-s[i][1]), barrier: s[i][2] + f*(s[i+1][2]-s[i][2])};
+  }
+  // wind: headwind positive, tailwind negative (kt)
+  function toCompute(pa, oat, weight, wind){
+    var r = {belowSL: pa < 0, offChart: null};
+    if(pa > 10000) r.offChart = 'pressure altitude above 10,000 ft';
+    else if(weight < 2600 || weight > 3600) r.offChart = 'weight outside 2,600–3,600 lb';
+    else if(wind > 15 || wind < -5) r.offChart = 'wind outside 15 kt headwind / 5 kt tailwind';
+    r.step1 = toStep1(pa, oat);
+    if(!r.offChart && r.step1 > TO_STEP1_MAX + 1) r.offChart = 'hot and high enough to run off the top of the chart';
+    r.step2 = toGuide(TO_WEIGHT_LINES, r.step1, (3600-weight)/1000);
+    r.step3 = wind >= 0 ? toGuide(TO_HEAD_LINES, r.step2, wind/15) : toGuide(TO_TAIL_LINES, r.step2, -wind/5);
+    r.threeBlade = r.step3;
+    r.twoBlade = toTwoBlade(r.step3);
+    var sp = toSpeeds(weight); r.liftoff = sp.liftoff; r.barrier = sp.barrier;
+    return r;
+  }
+
+  var toOatDial, toAltimeterDial, toWeightDial, toWindDial;
+  var toEls = {};
+  ['to-chips','to-bezel-pill','to-hero-dist','to-hero-dist-alt','to-hero-liftoff','to-hero-barrier','to-hero-da',
+   'to-hero-note','to-limit-msg','to-table-body','to-table-note','to-wind-unit'
+  ].forEach(function(id){ toEls[id] = document.getElementById(id); });
+
+  function toPopulateElev(){
+    var sel = document.getElementById('to-in-elev');
+    for(var a=0; a<=10000; a+=100){
+      var opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a.toLocaleString() + ' ft';
+      if(a === 1000) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function(){
+      document.getElementById('to-elev-display').textContent = parseFloat(sel.value).toLocaleString();
+      toRecompute();
+    });
+  }
+  function toReadConditions(){
+    var elev = parseFloat(document.getElementById('to-in-elev').value) || 0;
+    var altimeter = toAltimeterDial.get(), oat = toOatDial.get();
+    var pa = pressureAltitude(elev, altimeter);
+    return {
+      elev:elev, altimeter:altimeter, oat:oat, pa:pa,
+      isaDev: oat - (15 - 1.98*pa/1000),
+      da: pa + 120*(oat - (15 - 1.98*pa/1000)),
+      weight: toWeightDial.get(), wind: toWindDial.get(),
+      threeBlade: document.getElementById('to-prop-toggle').checked
+    };
+  }
+  function toRound(d){ return Math.round(d/10)*10; }
+  function toFmtFt(d){ return toRound(d).toLocaleString(); }
+
+  function toRecompute(){
+    var c = toReadConditions();
+    var r = toCompute(c.pa, c.oat, c.weight, c.wind);
+    document.getElementById('to-conditions-card').classList.toggle('range-alert', !!r.offChart && !/weight|wind/.test(r.offChart));
+
+    toEls['to-chips'].innerHTML =
+      '<span class="chip"><b class="num">'+fmt(c.pa,0)+'</b><small>ft pressure alt.</small></span>' +
+      '<span class="chip"><b class="num">'+fmt(c.da,0)+'</b><small>ft density alt.</small></span>' +
+      '<span class="chip"><b class="num">'+(c.isaDev>=0?'+':'')+fmt(c.isaDev,1)+'&deg;C</b><small>ISA deviation</small></span>' +
+      (r.offChart && !/weight|wind/.test(r.offChart) ? '<span class="chip warn"><b>&#9888;</b><small>outside chart range</small></span>' : '');
+
+    toEls['to-wind-unit'].textContent = c.wind > 0 ? 'KT HEAD' : c.wind < 0 ? 'KT TAIL' : 'KT';
+
+    var mine = c.threeBlade ? r.threeBlade : r.twoBlade, other = c.threeBlade ? r.twoBlade : r.threeBlade;
+    if(r.offChart){
+      toEls['to-hero-dist'].innerHTML = '&mdash;<span class="unit">FT</span>';
+      toEls['to-hero-dist-alt'].textContent = '';
+    } else {
+      toEls['to-hero-dist'].innerHTML = toFmtFt(mine) + '<span class="unit">FT</span>';
+      toEls['to-hero-dist-alt'].textContent = (c.threeBlade ? '2-blade prop: ' : '3-blade prop: ') + toFmtFt(other) + ' ft';
+    }
+    toEls['to-hero-liftoff'].innerHTML = fmt(r.liftoff,0) + '<span class="unit">KIAS</span>';
+    toEls['to-hero-barrier'].innerHTML = fmt(r.barrier,0) + '<span class="unit">KIAS</span>';
+    toEls['to-hero-da'].innerHTML = fmt(c.da,0) + '<span class="unit">FT</span>';
+    toEls['to-bezel-pill'].textContent = 'estimated';
+    toEls['to-bezel-pill'].className = 'pill warn';
+
+    var msg = '';
+    if(r.offChart){
+      msg = 'Outside the POH takeoff chart (' + r.offChart + ') — no distance shown. Don’t extrapolate takeoff performance.';
+    } else if(c.wind < 0){
+      msg = 'Tailwind: the chart allows for up to 5 kt, and it lengthens the takeoff sharply.';
+    }
+    toEls['to-limit-msg'].textContent = msg;
+
+    var note;
+    if(r.offChart){
+      note = 'No distance: the chart doesn’t cover these conditions.';
+    } else {
+      note = 'Read through the chart’s three steps (3-blade scale): ' + toFmtFt(r.step1) + ' ft at 3,600 lb and no wind → ' +
+        toFmtFt(r.step2) + ' ft at ' + c.weight.toLocaleString() + ' lb → ' + toFmtFt(r.step3) + ' ft' +
+        (c.wind ? ' with ' + Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'headwind' : 'tailwind') : '') +
+        (c.threeBlade ? '.' : ', ' + toFmtFt(r.twoBlade) + ' ft on the 2-blade scale.') +
+        ' Digitized from POH Figure 5-15 — an estimate with chart-reading tolerance, not a certified figure.';
+      if(r.belowSL) note += ' Pressure altitude is below sea level: the sea-level curve is used, which slightly overstates the distance.';
+    }
+    toEls['to-hero-note'].textContent = note;
+    toEls['to-hero-note'].classList.toggle('warn', !!r.offChart);
+
+    var rows = '';
+    [3600,3400,3200,3000,2800,2600].forEach(function(w){
+      var sp = toSpeeds(w), cells = '';
+      [-5,0,5,10,15].forEach(function(k){
+        var rr = toCompute(c.pa, c.oat, w, k);
+        var v = c.threeBlade ? rr.threeBlade : rr.twoBlade;
+        var cls = (w === c.weight && k === c.wind) ? ' current-cell' : '';
+        cells += '<td class="num'+cls+'">' + (rr.offChart ? '&mdash;' : toFmtFt(v)) + '</td>';
+      });
+      rows += '<tr class="'+(w === c.weight ? 'current' : '')+'">' +
+        '<td>'+w.toLocaleString()+' lb</td>' +
+        '<td class="num">'+fmt(sp.liftoff,0)+'</td>' +
+        '<td class="num">'+fmt(sp.barrier,0)+'</td>' + cells + '</tr>';
+    });
+    toEls['to-table-body'].innerHTML = rows;
+    toEls['to-table-note'].textContent = (c.threeBlade ? '3-blade' : '2-blade') + ' propeller. Speeds in KIAS.' +
+      (r.offChart && !/weight|wind/.test(r.offChart) ? ' — = outside the chart.' : '');
+  }
+
+  toPopulateElev();
+  toOatDial = setupDial('to-oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, toRecompute);
+  toAltimeterDial = setupDial('to-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, toRecompute);
+  toWeightDial = setupDial('to-weight', {min:2600,max:3600,step:20,decimals:0,tickStep:100,value:3600}, toRecompute);
+  toWindDial = setupDial('to-wind', {min:-5,max:15,step:1,decimals:0,tickStep:5,value:0,alertRange:[-5,-0.5]}, toRecompute);
+  var toPropToggle = document.getElementById('to-prop-toggle');
+  var toPropStateEl = document.getElementById('to-prop-state');
+  toPropToggle.addEventListener('change', function(){
+    toPropStateEl.textContent = toPropToggle.checked ? '3-Blade' : '2-Blade';
+    toPropStateEl.classList.toggle('on', toPropToggle.checked);
+    toRecompute();
+  });
+  toRecompute();
+
   // ---- Aircraft tab switching ----
   var PLANE_META = {
     n7154n: {
@@ -2698,9 +3108,17 @@
       badges: '<span class="badge">300 BHP rated @ 2700 RPM</span>' +
         '<span class="badge">POH Section 5, VB-1060</span>' +
         '<span class="badge">3600 lb gross wt</span>'
+    },
+    'n114el-to': {
+      tail: 'N114EL',
+      h1: 'Takeoff Distance Calculator',
+      subhead: 'Piper PA&#8209;32&#8209;301 Saratoga &middot; Maximum effort takeoff, flaps 25&deg;',
+      badges: '<span class="badge">2700 RPM, full throttle before brake release</span>' +
+        '<span class="badge">POH Fig. 5-15, VB-1060</span>' +
+        '<span class="badge">Paved, level, dry runway</span>'
     }
   };
-  var PLANES = ['n7154n', 'n3008u', 'n114el'];
+  var PLANES = ['n7154n', 'n3008u', 'n114el', 'n114el-to'];
   function selectPlane(plane){
     PLANES.forEach(function(p){
       document.getElementById('page-'+p).classList.toggle('active', plane===p);

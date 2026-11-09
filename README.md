@@ -14,6 +14,9 @@ tab at the top of the app:
 - **N114EL** — a Piper PA-32-301 Saratoga with a Lycoming IO-540-K (300 BHP @ 2700
   RPM), constant-speed prop. Same layout as N7154N: RPM and % power in, manifold
   pressure out.
+- **N114EL T/O** — a second N114EL tab for **takeoff distance over a 50 ft barrier**
+  (maximum effort, flaps 25°), from field elevation, OAT, altimeter setting, gross
+  weight, wind component, and propeller (3- or 2-blade).
 
 ## Install on iPad
 
@@ -240,3 +243,59 @@ about 16% more fuel and +2 kt.
 
 Always cross-check any setting against N114EL's current POH and actual weight before
 using it in flight.
+
+### N114EL takeoff distance
+
+You dial in **field elevation, OAT, altimeter setting, gross weight, and wind
+component** (headwind positive, tailwind negative), and pick the **propeller**. The app
+gives takeoff distance over a 50 ft barrier, liftoff and barrier speeds, and density
+altitude, plus a table of distances for every 200 lb and 5 kt at the current conditions.
+
+The data comes from the PA-32-301 POH's **Maximum Effort Takeoff Performance — Flaps
+25°** chart (Section 5, Figure 5-15, Report VB-1060, revised 8/4/1982): 2700 RPM and full
+throttle before brake release, paved, level, dry runway. The chart is a three-step
+nomograph, and the app follows the same three steps:
+
+1. **OAT × pressure altitude → distance at 3600 lb, no wind.** Each of the six altitude
+   curves (sea level–10,000 ft) was traced off a 600 dpi scan, corrected for the scan's
+   slight tilt, and fit as ln(distance) cubic in OAT. The fits are within about 5 ft RMS
+   (13 ft max) of the traced line. Altitudes between curves are interpolated linearly.
+   The curves are close to, but not exactly, a single function of density altitude (about
+   20 ft apart at equal density altitude), so the app keeps them separate, as you would
+   reading the chart.
+2. **Weight.** The seven straight guide lines from the 3600 lb reference line to 2600 lb
+   were traced (about 60% of the starting distance at 2600 lb). The app interpolates
+   between neighbouring lines.
+3. **Wind.** The same applies to the eight headwind lines (to 15 kt, about 77–84% at
+   15 kt) and the seven tailwind lines (to 5 kt, about +17%).
+
+The result is on the chart's 3-blade scale. The 2-blade scale is a straight conversion,
+fit to its labeled ticks: 1.1105 × 3-blade + 11 ft. The **Propeller** switch chooses which
+one is shown, defaulting to 3-blade, and the other appears underneath. Liftoff and barrier
+speeds come from the chart's table, interpolated by weight.
+
+**Checked against the chart's worked example:** 1,200 ft, 16°C, 3,480 lb, 10 kt
+headwind.
+
+| Step | Chart's drawn arrow | App |
+|---|---|---|
+| After temperature/altitude | ~1,780 ft | 1,784 ft |
+| After weight | ~1,690 ft | 1,699 ft |
+| Final, 3-blade | 1,450 ft | 1,463 ft (shown as 1,460) |
+| Final, 2-blade | prints 1,600 ft; arrow meets the scale at ~1,620 | 1,636 ft |
+| Liftoff / barrier speed | 65 / 70 KIAS | 65 / 70 KIAS |
+
+Across about 82,000 combinations of altitude, temperature, weight, and wind, distance
+always increases with altitude, temperature, weight, and tailwind, and decreases with
+headwind.
+
+**No extrapolation.** The chart covers sea level–10,000 ft pressure altitude, −40 to
++40°C, 2600–3600 lb, up to 15 kt headwind or 5 kt tailwind. Its curves stop at about
+4,300 ft on the first step, so hot-and-high conditions run off the top. Outside any of
+that, the app shows no distance and says why. A pressure altitude below sea level uses
+the sea-level curve, which slightly overstates the distance. Every number is labeled
+**estimated**: it's a digitized chart, with the same few-percent tolerance as reading it
+by hand.
+
+Always cross-check takeoff performance against N114EL's current POH, the actual runway
+surface and slope, and the aircraft's actual weight, and add your own safety margin.
