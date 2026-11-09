@@ -1,4 +1,4 @@
-const CACHE = "n7154n-power-v30";
+const CACHE = "n7154n-power-v31";
 const ASSETS = [
   "./",
   "./index.html",

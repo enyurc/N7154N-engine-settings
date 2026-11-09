@@ -2,8 +2,16 @@
 
 An installable web app (PWA) that calculates cruise power settings — RPM, manifold
 pressure (where applicable), fuel flow, and indicated/true airspeed — at a desired
-% power, for any altitude and temperature. Covers three aircraft, switchable with a
-tab at the top of the app:
+% power, for any altitude and temperature, plus takeoff performance where the POH chart
+has been added. The top of the app has two rows of tabs:
+
+- **Aircraft:** N7154N, N3008U, or N114EL.
+- **Calculator:** **Power Settings** or **Takeoff Perf**. Takeoff Perf is greyed out for an
+  aircraft without takeoff data (currently N7154N and N3008U). The app remembers the
+  calculator you picked last, so switching back to an aircraft that has it opens it
+  again. It also reopens on the aircraft and calculator you used last.
+
+The aircraft:
 
 - **N7154N** — a 1968 Beechcraft E33 Bonanza (Naperville Flying Club) with a
   Continental IO-470-K (225 BHP @ 2600 RPM), constant-speed prop.
@@ -14,8 +22,8 @@ tab at the top of the app:
 - **N114EL** — a Piper PA-32-301 Saratoga with a Lycoming IO-540-K (300 BHP @ 2700
   RPM), constant-speed prop. Same layout as N7154N: RPM and % power in, manifold
   pressure out.
-- **N114EL T/O** — a second N114EL tab for **takeoff distance over a 50 ft barrier**
-  (maximum effort, flaps 25°), from field elevation, OAT, altimeter setting, gross
+  Its **Takeoff Perf** calculator gives **takeoff distance over a 50 ft barrier**
+  (maximum effort, flaps 25°) from field elevation, OAT, altimeter setting, gross
   weight, and wind component, for N114EL's 3-blade propeller.
 
 ## Install on iPad

@@ -114,7 +114,7 @@
     color:var(--ink-dim);
   }
 
-  .tail-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;}
+  .tail-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-bottom:.35rem;}
   .plane-tabs{display:flex;gap:.4rem;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:.2rem;}
   .plane-tab{
     border:0;background:transparent;color:var(--ink-dim);
@@ -122,6 +122,9 @@
     padding:.4rem .85rem;border-radius:999px;cursor:pointer;touch-action:manipulation;
   }
   .plane-tab.active{background:var(--accent);color:var(--accent-ink);}
+  .plane-tab:disabled{opacity:.4;cursor:not-allowed;}
+  .nav-stack{display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;}
+  @media (max-width:460px){ .nav-stack{align-items:flex-start;} }
   .page{display:none;}
   .page.active{display:block;}
 
@@ -431,11 +434,16 @@
   <div class="wrap">
     <div class="tail-row">
       <p class="tail" id="tail-label">N7154N &middot; Naperville Flying Club</p>
-      <div class="plane-tabs" role="tablist" aria-label="Aircraft">
-        <button type="button" class="plane-tab active" id="tab-n7154n" data-plane="n7154n">N7154N</button>
-        <button type="button" class="plane-tab" id="tab-n3008u" data-plane="n3008u">N3008U</button>
-        <button type="button" class="plane-tab" id="tab-n114el" data-plane="n114el">N114EL</button>
-        <button type="button" class="plane-tab" id="tab-n114el-to" data-plane="n114el-to">N114EL T/O</button>
+      <div class="nav-stack">
+        <div class="plane-tabs" role="tablist" aria-label="Aircraft">
+          <button type="button" class="plane-tab active" id="tab-n7154n" role="tab" aria-selected="true">N7154N</button>
+          <button type="button" class="plane-tab" id="tab-n3008u" role="tab" aria-selected="false">N3008U</button>
+          <button type="button" class="plane-tab" id="tab-n114el" role="tab" aria-selected="false">N114EL</button>
+        </div>
+        <div class="plane-tabs" role="tablist" aria-label="Calculator">
+          <button type="button" class="plane-tab active" id="tab-view-power" role="tab" aria-selected="true">Power Settings</button>
+          <button type="button" class="plane-tab" id="tab-view-takeoff" role="tab" aria-selected="false">Takeoff Perf</button>
+        </div>
       </div>
     </div>
     <h1 id="page-h1">Power Setting Calculator</h1>
@@ -3093,25 +3101,59 @@
         '<span class="badge">Paved, level, dry runway</span>'
     }
   };
-  var PLANES = ['n7154n', 'n3008u', 'n114el', 'n114el-to'];
-  function selectPlane(plane){
-    PLANES.forEach(function(p){
-      document.getElementById('page-'+p).classList.toggle('active', plane===p);
-      document.getElementById('tab-'+p).classList.toggle('active', plane===p);
+  // Two rows of tabs: the aircraft, then which calculator for it. Each
+  // (aircraft, calculator) pair is one page; an aircraft without that
+  // calculator greys its tab out and shows power settings instead. The
+  // calculator last picked is remembered, so coming back to an aircraft that
+  // has it shows it again.
+  var AIRCRAFT = ['n7154n', 'n3008u', 'n114el'];
+  var PAGES = {n7154n:{power:'n7154n'}, n3008u:{power:'n3008u'}, n114el:{power:'n114el', takeoff:'n114el-to'}};
+  var VIEW_NAMES = {power:'power settings', takeoff:'takeoff performance'};
+  var curPlane = 'n7154n', wantView = 'power';
+  function showPage(){
+    var view = PAGES[curPlane][wantView] ? wantView : 'power';
+    var page = PAGES[curPlane][view];
+    AIRCRAFT.forEach(function(a){
+      Object.keys(PAGES[a]).forEach(function(v){
+        document.getElementById('page-'+PAGES[a][v]).classList.toggle('active', PAGES[a][v] === page);
+      });
+      var tab = document.getElementById('tab-'+a);
+      tab.classList.toggle('active', a === curPlane);
+      tab.setAttribute('aria-selected', a === curPlane ? 'true' : 'false');
     });
-    var meta = PLANE_META[plane];
+    ['power', 'takeoff'].forEach(function(v){
+      var tab = document.getElementById('tab-view-'+v), has = !!PAGES[curPlane][v];
+      tab.classList.toggle('active', v === view);
+      tab.setAttribute('aria-selected', v === view ? 'true' : 'false');
+      tab.disabled = !has;
+      tab.title = has ? '' : 'No ' + VIEW_NAMES[v] + ' data for ' + curPlane.toUpperCase() + ' yet';
+    });
+    var meta = PLANE_META[page];
     document.getElementById('tail-label').innerHTML = meta.tail;
     document.getElementById('page-h1').textContent = meta.h1;
     document.getElementById('page-subhead').innerHTML = meta.subhead;
     document.getElementById('page-badges').innerHTML = meta.badges;
-    try{ localStorage.setItem('aircraft-power-settings-plane', plane); }catch(e){}
+    try{
+      localStorage.setItem('aircraft-power-settings-plane', curPlane);
+      localStorage.setItem('aircraft-power-settings-view', wantView);
+    }catch(e){}
   }
-  PLANES.forEach(function(p){
-    document.getElementById('tab-'+p).addEventListener('click', function(){ selectPlane(p); });
+  AIRCRAFT.forEach(function(a){
+    document.getElementById('tab-'+a).addEventListener('click', function(){ curPlane = a; showPage(); });
   });
-  var savedPlane = null;
-  try{ savedPlane = localStorage.getItem('aircraft-power-settings-plane'); }catch(e){}
-  if(savedPlane && savedPlane !== 'n7154n' && PLANES.indexOf(savedPlane) >= 0) selectPlane(savedPlane);
+  ['power', 'takeoff'].forEach(function(v){
+    document.getElementById('tab-view-'+v).addEventListener('click', function(){ wantView = v; showPage(); });
+  });
+  var savedPlane = null, savedView = null;
+  try{
+    savedPlane = localStorage.getItem('aircraft-power-settings-plane');
+    savedView = localStorage.getItem('aircraft-power-settings-view');
+  }catch(e){}
+  // Earlier versions saved the takeoff page as its own "plane".
+  if(savedPlane === 'n114el-to'){ savedPlane = 'n114el'; savedView = 'takeoff'; }
+  if(AIRCRAFT.indexOf(savedPlane) >= 0) curPlane = savedPlane;
+  if(savedView === 'power' || savedView === 'takeoff') wantView = savedView;
+  showPage();
 })();
 </script>
 
