@@ -1033,6 +1033,8 @@
 
       </div>
 
+      <p class="limit-msg" id="el-limit-msg" role="status" aria-live="polite"></p>
+
       <div class="bezel">
         <p class="bezel-title">Computed setting <span class="pill" id="el-bezel-pill"></span></p>
         <div class="bezel-grid">
@@ -1110,11 +1112,17 @@
       pressure plus a small power&#8209;dependent offset, fit to that boundary &mdash; it separates every printed
       value from every &ldquo;&mdash;&rdquo; in the table. When your setting needs more manifold pressure than full
       throttle provides (including on a hot day, per the POH note that full&#8209;throttle values may not be
-      obtainable in non&#8209;standard conditions), the app adjusts the other dial: moving RPM pulls % power down to
-      what's attainable, and moving % power raises RPM first, then lowers % power if even 2600&nbsp;RPM isn't
-      enough. On a cold day the temperature correction can bring a &ldquo;&mdash;&rdquo; cell back within reach;
-      those cells are filled by extending each altitude row's manifold&#8209;pressure&ndash;vs&ndash;RPM curve
-      (shown with an asterisk below, and labeled estimated).</p>
+      obtainable in non&#8209;standard conditions), the app adjusts: changing % power or the conditions raises RPM
+      first, then lowers % power if even 2600&nbsp;RPM isn't enough, and the pane says what it changed. On a cold
+      day the temperature correction can bring a &ldquo;&mdash;&rdquo; cell back within reach; those cells are filled
+      by extending each altitude row's manifold&#8209;pressure&ndash;vs&ndash;RPM curve (shown with an asterisk below,
+      and labeled estimated).</p>
+      <p><b>Turning the RPM dial never changes % power.</b> If a lower RPM would need more manifold pressure than
+      full throttle gives, the RPM stops at the last setting that still works and the pane says the RPM is at a
+      limit. <b>Below 2300&nbsp;RPM</b> the dial only goes as far as the POH power table publishes the setting:
+      55&ndash;75% power, using only printed cells (not &ldquo;&mdash;&rdquo;) at this altitude. Outside that it
+      stops at 2300&nbsp;RPM, with a notice. Pushing past either end of the dial (2200 or 2600&nbsp;RPM) also shows
+      a notice. Raising RPM is always allowed.</p>
       <p><b>Any other RPM or % power</b> is <b>estimated</b>: 50&nbsp;RPM steps interpolate between table columns,
       and % power between 55, 65, and 75% interpolates between the three power tables. <b>Below 55%</b> (shaded red
       on the % power dial, 10&ndash;40%) is below the table entirely; manifold pressure continues the 55&ndash;65%
@@ -2403,8 +2411,41 @@
     return r;
   }
 
+  // Whether a setting is inside the POH power table's published range: 55-75%
+  // power, within the table's altitudes, and built only from printed cells
+  // (no "--" cells) of the power table(s) it interpolates between.
+  function elPublished(rpm, pct, cond){
+    if(pct < 55 || pct > 75 || cond.pa < 0 || cond.pa > EL_PA_MAX) return false;
+    var lo = pct <= 65 ? 55 : 65, hi = pct <= 65 ? 65 : 75;
+    var tables = pct === lo ? [lo] : pct === hi ? [hi] : [lo, hi];
+    return tables.every(function(p){ return elTableMp(p, cond.pa, rpm).cert; });
+  }
+  // RPM reductions stop where this % power would need more MP than full
+  // throttle gives, and below 2300 RPM wherever the setting isn't one the POH
+  // power table publishes.
+  var EL_LOW_RPM = 2300;
+  function elRpmAllowed(rpm, pct, cond){
+    if(elCompute(rpm, pct, cond).exceeds) return false;
+    return rpm >= EL_LOW_RPM || elPublished(rpm, pct, cond);
+  }
+  // Notice for an RPM reduction refused at `stop`; `below` is the first RPM
+  // under it that isn't allowed.
+  function elRpmLimitText(stop, below, pct, cond){
+    var head = 'RPM is at its limit for ' + pct + '% power: ';
+    var r = elCompute(below, pct, cond);
+    if(r.exceeds){
+      return head + 'below ' + stop + ' RPM it would need about ' + fmt(r.mp,1) +
+        ' inHg, more than full throttle gives at this altitude and temperature (about ' + fmt(r.ft,1) + ' inHg).';
+    }
+    var why = pct < 55 ? 'which starts at 55%' : pct > 75 ? 'which stops at 75%' :
+      'and it doesn\u2019t publish ' + pct + '% below ' + stop + ' RPM at this altitude (it prints \u201c\u2014\u201d, full throttle)';
+    return head + 'below ' + EL_LOW_RPM + ' RPM is only allowed for settings the POH power table publishes, ' + why + '.';
+  }
+
   var elOatDial, elAltimeterDial, elRpmDial, elPctDial;
-  var elAdjusted = false;
+  // Last RPM shown (elRecompute keeps it current), and the notice for the
+  // last limit applied ('' when nothing was limited).
+  var elLastRpm = 2400, elLimitMsg = '';
 
   function elCurrentAltitude(){
     return parseFloat(document.getElementById('el-in-altitude').value) || 6000;
@@ -2449,14 +2490,14 @@
     sel.addEventListener('change', function(){
       document.getElementById('el-altitude-display').textContent = parseFloat(sel.value).toLocaleString();
       elSnapAltimeterInto(elAltimeterBounds());
-      elEnforceLimits('pct');
+      elLimitMsg = elEnforceLimits();
       elRecompute();
     });
   }
 
   var elEls = {};
   ['el-chips','el-bezel-pill','el-hero-rpm','el-hero-mp','el-hero-mp-sub','el-hero-ff','el-hero-ff-rop',
-   'el-hero-tas','el-hero-tas-note','el-hero-ias','el-hero-note','el-table-body','el-table-note'
+   'el-hero-tas','el-hero-tas-note','el-hero-ias','el-hero-note','el-table-body','el-table-note','el-limit-msg'
   ].forEach(function(id){ elEls[id] = document.getElementById(id); });
 
   function elReadConditions(){
@@ -2472,31 +2513,27 @@
     };
   }
 
-  // Same approach as N7154N's enforceLimits, against full-throttle MP
-  // instead of a recommended-limits line: adjust the dial the user didn't
-  // just move first, then the other one if that alone isn't enough. 10%
-  // power is reachable at any RPM in every condition, so it always lands.
-  function elEnforceLimits(changed){
-    elAdjusted = false;
+  // After a % power or conditions change, brings (rpm, pct) back within
+  // full-throttle reach and returns a notice saying what changed ('' if
+  // nothing): raises RPM first, and only if even 2600 RPM isn't enough, pulls
+  // % power back too. 10% power is reachable at any RPM in every condition,
+  // so it always lands. (RPM changes never come through here: they keep
+  // % power fixed and stop at the limit instead.)
+  function elEnforceLimits(){
     var cond = elReadConditions();
-    var rpm = elRpmDial.get(), pct = elPctDial.get();
-    if(!elCompute(rpm, pct, cond).exceeds) return;
-    elAdjusted = true;
-    if(changed === 'rpm'){
-      pct = elSolvePctForLimit(rpm, cond);
-      elPctDial.set(pct, true);
-      if(elCompute(rpm, pct, cond).exceeds){
-        rpm = elSolveRpmForLimit(pct, cond);
-        elRpmDial.set(rpm, true);
-      }
-    } else {
-      rpm = elSolveRpmForLimit(pct, cond);
-      elRpmDial.set(rpm, true);
-      if(elCompute(rpm, pct, cond).exceeds){
-        pct = elSolvePctForLimit(rpm, cond);
-        elPctDial.set(pct, true);
-      }
+    var rpm0 = elRpmDial.get(), pct0 = elPctDial.get();
+    if(!elCompute(rpm0, pct0, cond).exceeds) return '';
+    var rpm = elSolveRpmForLimit(pct0, cond);
+    elRpmDial.set(rpm, true);
+    var r = elCompute(rpm, pct0, cond);
+    if(!r.exceeds){
+      return 'RPM raised to ' + rpm + ' so ' + pct0 + '% power stays within full-throttle reach at this altitude and temperature.';
     }
+    var pct = elSolvePctForLimit(rpm, cond);
+    elPctDial.set(pct, true);
+    return (rpm !== rpm0 ? 'RPM raised to ' + rpm + '. ' : '') + '% power limited to ' + pct + '%: ' + pct0 +
+      '% isn\u2019t obtainable even at ' + rpm + ' RPM — it would need about ' + fmt(r.mp,1) +
+      ' inHg, more than full throttle gives at this altitude and temperature (about ' + fmt(r.ft,1) + ' inHg).';
   }
 
   function elRecompute(){
@@ -2514,6 +2551,8 @@
     var pct = elPctDial.get();
     var res = elCompute(rpm, pct, cond);
     var ias = res.tasKt * Math.sqrt(densityRatio(cond.da));
+    elLastRpm = rpm;
+    elEls['el-limit-msg'].textContent = elLimitMsg;
 
     elEls['el-hero-rpm'].innerHTML = rpm;
     elEls['el-hero-mp'].innerHTML = fmt(res.mp,1) + '<span class="unit">inHg</span>';
@@ -2541,9 +2580,7 @@
     } else {
       note = 'Estimated by interpolating between the POH table’s RPM columns and 55/65/75% power tables — not itself a tabulated value.';
     }
-    if(elAdjusted){
-      note += ' The other dial was adjusted automatically — the requested setting needs more manifold pressure than full throttle can deliver here.';
-    } else if(!res.exceeds && res.ft - res.mp < 0.3){
+    if(!res.exceeds && res.ft - res.mp < 0.3){
       note += ' At or near full throttle.';
     }
     if(res.clamped){
@@ -2584,20 +2621,36 @@
 
   elPopulateAltitude();
   elOatDial = setupDial('el-oat', {min:-40,max:40,step:1,decimals:0,tickStep:10,value:15}, function(){
-    elEnforceLimits('pct');
+    elLimitMsg = elEnforceLimits();
     elRecompute();
   });
   elAltimeterDial = setupDial('el-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, function(){
     elSnapAltitudeInto(elAltitudeBounds());
-    elEnforceLimits('pct');
+    elLimitMsg = elEnforceLimits();
     elRecompute();
   });
-  elRpmDial = setupDial('el-rpm', {min:EL_RPM_MIN,max:EL_RPM_MAX,step:50,decimals:0,tickStep:50,value:2400}, function(){
-    elEnforceLimits('rpm');
+  // RPM changes never touch % power. A change past either end of the dial,
+  // or a reduction to an RPM where this % power needs more MP than full
+  // throttle gives (or, below 2300 RPM, one the POH table doesn't publish),
+  // is refused: the dial stops at the last RPM on the way down that still
+  // works, with a notice. Raising RPM is always allowed.
+  elRpmDial = setupDial('el-rpm', {min:EL_RPM_MIN,max:EL_RPM_MAX,step:50,decimals:0,tickStep:50,value:2400}, function(rpm, requested){
+    var cond = elReadConditions(), pct = elPctDial.get();
+    elLimitMsg = '';
+    if(requested > EL_RPM_MAX + 1e-6){
+      elLimitMsg = 'RPM is at its limit: ' + EL_RPM_MAX + ' RPM is the highest RPM in the POH power table.';
+    } else if(requested < EL_RPM_MIN - 1e-6){
+      elLimitMsg = 'RPM is at its limit: ' + EL_RPM_MIN + ' RPM is the lowest RPM in the POH power table.';
+    } else if(rpm < elLastRpm && !elRpmAllowed(rpm, pct, cond)){
+      var stop = elLastRpm;
+      while(stop-50 > rpm && elRpmAllowed(stop-50, pct, cond)) stop -= 50;
+      elRpmDial.set(stop, true);
+      elLimitMsg = elRpmLimitText(stop, stop-50, pct, cond);
+    }
     elRecompute();
   });
   elPctDial = setupDial('el-pct', {min:10,max:75,step:5,decimals:0,tickStep:5,value:65,alertRange:[10,40]}, function(){
-    elEnforceLimits('pct');
+    elLimitMsg = elEnforceLimits();
     elRecompute();
   });
 
@@ -2606,13 +2659,14 @@
   elFairingsToggle.addEventListener('change', function(){
     elFairingsStateEl.textContent = elFairingsToggle.checked ? 'Installed' : 'Removed';
     elFairingsStateEl.classList.toggle('on', elFairingsToggle.checked);
+    elLimitMsg = '';
     elRecompute();
   });
 
   document.querySelectorAll('#el-preset-col .preset-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
       elPctDial.set(parseInt(btn.getAttribute('data-pct'), 10), true);
-      elEnforceLimits('pct');
+      elLimitMsg = elEnforceLimits();
       elRecompute();
     });
   });

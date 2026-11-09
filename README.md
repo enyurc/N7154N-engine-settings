@@ -200,15 +200,23 @@ are corrected:
 models full-throttle MP as 0.97 × standard ambient pressure plus a small offset per power
 level (0.265 / 0.652 / 0.925 inHg at 55/65/75%), fit to that boundary. It puts all 148
 printed values at or under the line and all 77 "—" cells over it, with 0.009 inHg of
-margin on each side, so no extra tolerance is applied. Like N7154N's MP-vs-RPM limit, when
-a setting needs more MP than full throttle provides (which can include a hot day, per the
-POH's note), the app adjusts the other dial. Moving RPM lowers % power. Moving % power or
-the conditions raises RPM first, then lowers % power if 2600 RPM still isn't enough. This
-was swept across ~550,000 condition/RPM/power combinations: the app never ended on an
-unreachable setting, never moved a valid one, and always landed on the nearest valid step.
-A cold day can bring a "—" cell back within reach. For that case each altitude row is fit
-as MP = A + B/RPM through its printed cells (within 0.18 inHg) and extended. Those values
-are marked with an asterisk and labeled estimated.
+margin on each side, so no extra tolerance is applied. When a change to % power or the
+conditions leaves a setting needing more MP than full throttle provides (which can include
+a hot day, per the POH's note), the app raises RPM first. It lowers % power only if 2600
+RPM still isn't enough, and the cruise power pane says what it changed. A cold day can
+bring a "—" cell back within reach. For that case each altitude row is fit as
+MP = A + B/RPM through its printed cells (within 0.18 inHg) and extended. Those values are
+marked with an asterisk and labeled estimated.
+
+**Turning the RPM dial never changes % power**, the same as N7154N. If a lower RPM would
+need more MP than full throttle gives, the RPM stops at the last setting that still works
+and the pane says the RPM is at a limit and why. **Below 2300 RPM**, the dial only goes as
+far as the POH power table publishes the setting: 55–75% power, built only from printed
+cells (not "—") at this altitude. Otherwise it stops at 2300 RPM with a notice. Pushing past
+either end of the dial (2200 or 2600 RPM) also shows a notice. Raising RPM is always
+allowed. Tested over ~78,000 RPM steps across altitude, temperature, altimeter, and % power:
+% power never changed, no step ended on an unreachable setting, and no step went below
+2300 RPM outside the published table. Every refusal showed a notice with the right reason.
 
 **Other RPM / % power settings** are estimated. 50 RPM steps interpolate between columns,
 and % power interpolates between the 55/65/75% tables. **Below 55%** (red on the dial,
