@@ -69,17 +69,30 @@ two limits:
   16.2 inHg at 6,000–16,000 ft. Below 6,000 ft that value is scaled by standard pressure.
   Every printed MP is at or under this line.
 
-There's also a **full-throttle power** limit. Above roughly 6,000 ft the 75% table's fuel
-flow drops below its normal 13.4 GPH. Those printed settings are already at full throttle
-and making less than 75%: at a constant fuel burn per horsepower, 9.6 GPH at 16,000 ft is
-about 54%. At full throttle, power scales with RPM, so the app estimates the most power
-full throttle can make at any RPM from those fuel flows. That lands within 1.5 percentage
-points of the 55% / 2300 RPM table's own full-throttle cells. Estimated settings above it
-aren't obtainable. This also covers a gap in the MP estimate at altitude: where the 65% and
-75% tables share one full-throttle MP, the estimate *falls* as RPM drops, so the MP checks
-alone wouldn't catch it. The POH's own printed settings are always shown as printed. When
-one is a full-throttle entry, the readout's note gives the actual power its fuel flow
-implies.
+**Full-throttle (shaded) POH settings.** Above roughly 6,000 ft some printed settings are
+already at full throttle and make less power than their table's title. The POH lists them
+with a lower fuel flow than the normal 9.8 / 11.5 / 13.4 GPH for 55 / 65 / 75%. Those normal
+flows are almost exactly proportional to power (constant BSFC), so each printed fuel flow
+converts straight to the power it really makes. For example, the 75% table's 11.1 GPH at
+12,000 ft is about 62.6%, and 9.6 GPH at 16,000 ft is about 54%. The 30 shaded entries
+range from 47% to 74%.
+
+- **The % power dial always shows actual power**, to 0.1% when it isn't a whole number.
+  The 75% preset at 12,000 ft sets 2450 RPM and 62.6%, shows the printed MP, fuel flow, and
+  airspeed, and says you're in the full-throttle area of the POH tables. The reference
+  table marks those rows the same way.
+- **Estimates between settings** interpolate at the power each printed setting really
+  makes. With nothing shaded this is identical to before. The 2450 RPM line runs through
+  the midpoint of the 65% and 75% settings. Where those two merge into one full-throttle
+  setting, the slope between them is rounding noise. Below a 5% gap it blends into the
+  table's typical 0.21 inHg per %, reaching it at a 1% gap.
+- **Full throttle at other RPMs** is estimated from the shaded 2300 and 2450 RPM entries.
+  At a fixed full-throttle MP, power is roughly proportional to RPM; scaling one entry to
+  the other's RPM this way lands within 1.5 percentage points. Asking for more power than
+  that limits % power to the full-throttle figure, with a message.
+- **Where the POH's 65% and 75% entries are the same full-throttle setting** but print
+  slightly different MP or airspeed (a few cases, e.g. 135 vs 139 KTAS at 16,000 ft hot),
+  the 75% figures are shown and the note gives the 65% ones.
 
 **Turning the RPM dial never changes % power.** If a lower RPM would put the current power
 out of limits, the RPM stops at the last setting on the way down that still works. The

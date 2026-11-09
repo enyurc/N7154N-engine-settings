@@ -652,13 +652,22 @@
       below normal for that power are already at full throttle, and they give one manifold pressure per altitude
       (23.1, 21.7, 20.1, 18.6, 17.3, and 16.2&nbsp;inHg at 6,000&ndash;16,000&nbsp;ft), scaled by standard
       pressure below 6,000&nbsp;ft.</p>
-      <p><b>Full-throttle power.</b> Above roughly 6,000&nbsp;ft the 75% table's fuel flow drops below its
-      normal 13.4&nbsp;GPH: those printed settings are already at full throttle and making less than 75% (at a
-      constant fuel burn per horsepower, 9.6&nbsp;GPH at 16,000&nbsp;ft is about 54%). At full throttle, power
-      scales with RPM, so the app estimates the most power full throttle can make at any RPM from those fuel
-      flows (this lands within 1.5 percentage points of the 55%/2300&nbsp;RPM table's own full-throttle cells). Estimated
-      settings above that aren't obtainable. The POH's own printed settings are always shown as printed; when
-      one is a full-throttle entry, the note under the readout gives the actual power its fuel flow implies.</p>
+      <p><b>Full-throttle (shaded) POH settings.</b> Above roughly 6,000&nbsp;ft some printed settings are
+      already at full throttle and make less power than their table's title: the POH lists them with a lower fuel
+      flow than the normal 9.8&nbsp;/ 11.5&nbsp;/ 13.4&nbsp;GPH for 55&nbsp;/ 65&nbsp;/ 75%. Those normal flows
+      are almost exactly proportional to power (a constant fuel burn per horsepower), so each printed fuel flow
+      converts straight to the power it really makes &mdash; the 75% table's 11.1&nbsp;GPH at 12,000&nbsp;ft is
+      about 62.6%, and 9.6&nbsp;GPH at 16,000&nbsp;ft about 54%. <b>The % power dial always shows that actual
+      power</b> (to 0.1% when it isn't a whole number): the 75% preset at 12,000&nbsp;ft sets 2450&nbsp;RPM and
+      62.6%, with the printed manifold pressure, fuel flow, and airspeed, and the pane says you're in the
+      full&#8209;throttle area of the POH tables. The reference table below marks those rows the same way. Where
+      the POH's 65% and 75% entries are the same full&#8209;throttle setting but print slightly different numbers,
+      the 75% figures are shown and the note gives the 65% ones.</p>
+      <p>Estimates between settings interpolate at the power each printed setting really makes. Full throttle at
+      other RPMs is estimated from the shaded 2300 and 2450&nbsp;RPM entries (at a fixed full&#8209;throttle
+      manifold pressure, power is roughly proportional to RPM; scaling one entry to the other's RPM this way lands
+      within 1.5 percentage points). Asking for more power than that limits % power to the full&#8209;throttle
+      figure, with a message.</p>
       <p><b>Turning the RPM dial never changes % power.</b> If a lower RPM would put the current power out of
       limits, or you push past either end of the dial, the RPM stops at the last setting that still works and
       the pane says the RPM is at a limit. <b>When % power, altitude, temperature, or altimeter setting
@@ -1288,34 +1297,153 @@
     return FT_MP[i] + t*(FT_MP[i+1]-FT_MP[i]);
   }
 
-  // Most % power full throttle can make at this RPM. Above roughly 6,000 ft the
-  // 75% table's fuel flow drops below its normal 13.4 GPH: those settings are
-  // already at full throttle and making less than 75% (at constant BSFC, power
-  // scales with fuel flow -- e.g. 9.6 GPH at 16,000 ft is about 54%). At a
-  // fixed full-throttle MP, power scales with RPM. The same scaling matches the
-  // 55% / 2300 RPM table's own full-throttle cells to within 1.5 points. Where
-  // the 75% table shows no shortfall this isn't the binding limit (the MP
-  // checks are), so it returns Infinity.
+  // ---- Full-throttle (shaded) POH settings ----
+  // Above roughly 6,000 ft some printed settings are already at full throttle
+  // and fall short of the power their table is titled for: the POH lists them
+  // with a lower fuel flow than the normal 9.8 / 11.5 / 13.4 GPH for 55 / 65 /
+  // 75%. Those three normal flows are almost exactly proportional to power
+  // (constant BSFC), so a printed fuel flow converts straight to the power it
+  // actually represents -- e.g. the 75% table's 11.1 GPH at 12,000 ft is
+  // about 63%. Everything below works in that actual power: the % power dial
+  // shows it, and the MP / fuel flow / airspeed estimates interpolate between
+  // the printed settings at the power each one really makes.
   var FF_NORMAL = {55:9.8, 65:11.5, 75:13.4};
+  function actualPctFromFF(ff){
+    if(ff <= FF_NORMAL[65]) return 55 + (ff-FF_NORMAL[55])/(FF_NORMAL[65]-FF_NORMAL[55])*10;
+    return 65 + (ff-FF_NORMAL[65])/(FF_NORMAL[75]-FF_NORMAL[65])*10;
+  }
+  // The three printed settings at these conditions (interpolated like any
+  // table lookup), each with the actual power it makes and whether it's a
+  // shaded full-throttle entry.
+  function pohPoints(cond){
+    var P = {};
+    PCTS.forEach(function(p){
+      var r = lookup(p, cond.pa, cond.isaDev);
+      P[p] = {row:r, rpm:r.rpm, actual:actualPctFromFF(r.ffGph), shaded:r.ffGph < FF_NORMAL[p] - 0.01};
+    });
+    return P;
+  }
+
+  // inHg per % power at 2450 RPM, from the 65% and 75% settings at the power
+  // each actually makes. As those two close up into the same full-throttle
+  // setting their gap shrinks and the slope between them turns to rounding
+  // noise (0.06-0.41 across the table). Below a 5% gap it blends smoothly
+  // into the table's typical slope, 0.21 inHg per % (0.18-0.25 wherever the
+  // gap is 5% or more), reaching it at a 1% gap -- the window that keeps the
+  // estimate smoothest as altitude and temperature change.
+  var TYPICAL_RATE = 0.21;
+  function rate2450For(P){
+    var gap = P[75].actual - P[65].actual;
+    var w = clamp((gap-1)/4, 0, 1);
+    var own = gap > 0.01 ? (P[75].row.mp - P[65].row.mp) / gap : TYPICAL_RATE;
+    return w*own + (1-w)*TYPICAL_RATE;
+  }
+
+  // Piecewise-linear interpolation of one printed column (fuel flow, TAS...)
+  // against actual power, through the three printed settings, extended
+  // linearly past either end. With nothing shaded the points sit at exactly
+  // 55/65/75%, so this is the same as interpolating by table.
+  function interpActual(P, key, pct){
+    var pts = [];
+    PCTS.forEach(function(p){
+      var x = P[p].actual, y = P[p].row[key];
+      if(pts.length && x - pts[pts.length-1][0] < 0.5) pts[pts.length-1] = [x, y];
+      else pts.push([x, y]);
+    });
+    if(pts.length === 1) return pts[0][1];
+    var k = 0;
+    while(k < pts.length-2 && pct > pts[k+1][0]) k++;
+    var a = pts[k], b = pts[k+1];
+    return a[1] + (pct-a[0])/(b[0]-a[0])*(b[1]-a[1]);
+  }
+
+  // MP for an arbitrary (RPM, actual % power): locally calibrated against the
+  // printed 55%@2300 / 65%,75%@2450 settings at the power each one really makes.
+  // The 2450 RPM line passes through the midpoint of the 65% and 75% settings
+  // (70% when neither is shaded) with the slope above, scaled proportionally
+  // to RPM for other engine speeds; the 2300 RPM line through the 55% setting.
+  //
+  // Below 55% power (outside all three certified tables) that same cruise-range
+  // slope is not physically reasonable to extend -- checked against the basic
+  // %BHP-proportional-to-MP relation, the straight extrapolation implied a
+  // requested 10% power was actually delivering roughly 2.5x that. Instead,
+  // MP is scaled proportionally between the 55% point and an assumed
+  // closed-throttle idle MP, which is exact at the 55% boundary and approaches
+  // a physically sane floor as %power falls toward zero.
+  function computeCustom(rpm, pct, cond){
+    var P = pohPoints(cond);
+    var r55 = P[55].row, r65 = P[65].row, r75 = P[75].row;
+    var p55 = P[55].actual, pMid = (P[65].actual + P[75].actual)/2;
+
+    var rate2450 = rate2450For(P);
+    var rate2300 = rate2450 * (2450/2300);
+    var t = (rpm-2300)/(2450-2300);
+    var mp0At2450 = (r65.mp + r75.mp)/2;
+    var p0 = p55 + t*(pMid-p55);
+    var mp0 = r55.mp + t*(mp0At2450-r55.mp);
+    var rate = rate2300 + t*(rate2450-rate2300);
+    var mp;
+    if(pct >= 55){
+      mp = mp0 + rate*(pct-p0);
+    } else {
+      var mp55 = mp0 + rate*(55-p0);
+      mp = IDLE_MP + (mp55-IDLE_MP) * (pct/55);
+    }
+
+    // Which printed settings this is exactly, if any (as their table labels).
+    var cells = PCTS.filter(function(p){ return rpm === P[p].rpm && Math.abs(pct - P[p].actual) < 0.01; });
+    // On a printed setting, show its printed values rather than the line's
+    // (they agree to rounding, but the table is the source).
+    if(cells.length) mp = P[cells[cells.length-1]].row.mp;
+    return {
+      mp: mp,
+      ffGph: interpActual(P, 'ffGph', pct),
+      ffPsi: interpActual(P, 'ffPsi', pct),
+      tasKt: interpActual(P, 'tasKt', pct),
+      tasMph: interpActual(P, 'tasMph', pct),
+      exact: cells.length > 0,
+      shadedCells: cells.filter(function(p){ return P[p].shaded; }),
+      clamped: r55.clamped || r65.clamped || r75.clamped
+    };
+  }
+
+  // Most power full throttle makes at this RPM, anchored on the POH's shaded
+  // entries: the 75% table's at 2450 RPM and the 55% table's at 2300 RPM,
+  // straight-line between them. Outside that span, or with only one of them
+  // shaded, power scales with RPM from the nearest one (at a fixed
+  // full-throttle MP, power is roughly proportional to RPM; scaling one entry
+  // to the other's RPM this way lands within 1.5 points). Where neither is
+  // shaded this isn't the binding limit (the MP checks are): Infinity.
   function fullThrottlePct(rpm, cond){
-    var ff75 = lookup(75, cond.pa, cond.isaDev).ffGph;
-    if(ff75 >= FF_NORMAL[75] - 0.01) return Infinity;
-    return 75 * (ff75/FF_NORMAL[75]) * (rpm/2450);
+    var P = pohPoints(cond);
+    var a = P[55].shaded ? P[55].actual : null, b = P[75].shaded ? P[75].actual : null;
+    if(a === null && b === null) return Infinity;
+    if(a === null) return b * (rpm/2450);
+    if(b === null || rpm <= 2300) return a * (rpm/2300);
+    return a + (rpm-2300)/(2450-2300)*(b-a);
   }
 
   // Which limit, if any, an (rpm, % power) pair breaks: the pg 5-26 ceiling,
-  // full-throttle MP, or full-throttle power. The POH's own certified settings
-  // are always shown as printed, so they never break one.
-  function limitStatus(rpm, pct, cond){
+  // full-throttle MP, or full-throttle power. The POH's own printed settings
+  // never break one unless strict is set (used to ask "is there any room
+  // above this?").
+  function limitStatus(rpm, pct, cond, strict){
     var res = computeCustom(rpm, pct, cond);
     var st = {mp:res.mp, ceiling:ceilingMP(rpm), ft:fullThrottleMP(cond.pa), pmax:fullThrottlePct(rpm, cond), reason:null};
-    if(res.exact) return st;
+    if(res.exact && !strict) return st;
     if(st.mp > st.ceiling + 0.05) st.reason = 'ceiling';
     else if(st.mp > st.ft + 0.05) st.reason = 'mp';
     else if(pct > st.pmax + 0.25) st.reason = 'power';
     return st;
   }
   function withinLimits(rpm, pct, cond){ return !limitStatus(rpm, pct, cond).reason; }
+  // True when this setting is at full throttle: within limits, but any more
+  // power at this RPM would need more MP or power than full throttle gives.
+  function atFullThrottle(rpm, pct, cond){
+    if(!withinLimits(rpm, pct, cond)) return false;
+    var r = limitStatus(rpm, pct + 0.5, cond, true).reason;
+    return r === 'mp' || r === 'power';
+  }
   // Why an (rpm, % power) pair is out of limits, as a sentence fragment.
   function limitReason(rpm, pct, cond){
     var st = limitStatus(rpm, pct, cond);
@@ -1327,69 +1455,32 @@
       return 'it would need about ' + fmt(st.mp,1) + ' inHg, more than full throttle can deliver at this altitude (about ' +
         fmt(st.ft,1) + ' inHg)';
     }
-    return 'at this altitude full throttle only makes about ' + fmt(st.pmax,0) + '% power at ' + rpm +
-      ' RPM (from the POH\u2019s full-throttle fuel flows)';
+    return 'at this altitude full throttle only makes about ' + fmtPct(st.pmax) + '% power at ' + rpm +
+      ' RPM (from the POH’s full-throttle fuel flows)';
   }
 
-  function interpTriple(v55, v65, v75, p){
-    if(p <= 65){ var t = (p-55)/(65-55); return v55 + t*(v65-v55); }
-    var t2 = (p-65)/(75-65);
-    return v65 + t2*(v75-v65);
-  }
-
-  // MP for an arbitrary (RPM, %power): locally calibrated against the certified
-  // 55%@2300 / 65%,75%@2450 points. Exact at those points; a reasoned estimate
-  // elsewhere, with the local %power-per-inHg slope at 2450 (from the real 65/75
-  // gap) scaled proportionally to RPM for other engine speeds.
-  //
-  // Below 55% power (outside all three certified tables) that same cruise-range
-  // slope is not physically reasonable to extend -- checked against the basic
-  // %BHP-proportional-to-MP relation, the straight extrapolation implied a
-  // requested 10% power was actually delivering roughly 2.5x that. Instead,
-  // MP is scaled proportionally between the certified 55% point and an assumed
-  // closed-throttle idle MP, which is exact at the 55% boundary and approaches
-  // a physically sane floor as %power falls toward zero.
-  function computeCustom(rpm, pct, cond){
-    var r55 = lookup(55, cond.pa, cond.isaDev);
-    var r65 = lookup(65, cond.pa, cond.isaDev);
-    var r75 = lookup(75, cond.pa, cond.isaDev);
-
-    // Work in inHg-per-%power (never divides by an MP difference) rather than
-    // %power-per-inHg, so the certified full-throttle cells -- where 65% and
-    // 75% need the identical MP -- give a well-behaved rate of 0 instead of a
-    // divide-by-zero.
-    var rate2450 = (r75.mp-r65.mp) / (75-65);
-    var rate2300 = rate2450 * (2450/2300);
-    var t = (rpm-2300)/(2450-2300);
-    var mp0At2450 = r65.mp + rate2450*(70-65);
-    var p0 = 55 + t*(70-55);
-    var mp0 = r55.mp + t*(mp0At2450-r55.mp);
-    var rate = rate2300 + t*(rate2450-rate2300);
-    var mp;
-    if(pct >= 55){
-      mp = mp0 + rate*(pct-p0);
-    } else {
-      var mp55 = mp0 + rate*(55-p0);
-      mp = IDLE_MP + (mp55-IDLE_MP) * (pct/55);
+  // Highest % power at or below pct that's within limits at this RPM. Every
+  // limit is monotonic in % power, so a bisection finds the crossing; if it's
+  // the pg 5-26 ceiling the result is rounded down to the 5% grid as before,
+  // otherwise it's full throttle and lands exactly on it -- or on the
+  // printed shaded setting at this RPM when that's within 1% above it (or
+  // 0.3% below; the two agree to within rounding of the POH's figures).
+  function pctCap(rpm, pct, cond){
+    var lo = PCT_MIN, hi = pct;
+    for(var i=0; i<40; i++){
+      var mid = (lo+hi)/2;
+      if(withinLimits(rpm, mid, cond)) lo = mid; else hi = mid;
     }
-
-    return {
-      mp: mp,
-      ffGph: interpTriple(r55.ffGph, r65.ffGph, r75.ffGph, pct),
-      ffPsi: interpTriple(r55.ffPsi, r65.ffPsi, r75.ffPsi, pct),
-      tasKt: interpTriple(r55.tasKt, r65.tasKt, r75.tasKt, pct),
-      tasMph: interpTriple(r55.tasMph, r65.tasMph, r75.tasMph, pct),
-      exact: (rpm===2300 && pct===55) || (rpm===2450 && (pct===65 || pct===75)),
-      clamped: r55.clamped || r65.clamped || r75.clamped
-    };
-  }
-
-  // Highest % power, at or below pct on the 5% grid, that's within limits at
-  // this RPM. A scan rather than a bisection: the certified POH settings are
-  // exempt from the limits, so feasibility isn't monotonic in % power.
-  function solvePctForLimit(rpm, pct, cond){
-    for(var p=pct; p>PCT_MIN; p-=5){ if(withinLimits(rpm, p, cond)) return p; }
-    return PCT_MIN;
+    if(limitStatus(rpm, Math.min(lo + 0.5, pct), cond, true).reason === 'ceiling'){
+      return {pct: clamp(Math.floor(lo/5 + 1e-9)*5, PCT_MIN, PCT_MAX), fullThrottle:false};
+    }
+    var P = pohPoints(cond), best = null;
+    PCTS.forEach(function(p){
+      var c = P[p];
+      if(c.rpm === rpm && c.actual > lo - 0.3 && c.actual < lo + 1 && c.actual <= pct &&
+         withinLimits(rpm, c.actual, cond) && (best === null || c.actual > best)) best = c.actual;
+    });
+    return {pct: best !== null ? best : Math.floor(lo*10)/10, fullThrottle:true};
   }
 
   // Lowest RPM from fromRpm up (50 RPM grid) that keeps this % power under
@@ -1422,6 +1513,9 @@
     return Math.pow(t, 4.2561);
   }
   function fmt(n,d){ return isFinite(n) ? n.toFixed(d===undefined?0:d) : '&mdash;'; }
+  // % power for messages: whole numbers as such, anything else to 0.1 (so a
+  // full-throttle 74.6% doesn't read as the 75% it fell short of).
+  function fmtPct(v){ return Math.abs(v - Math.round(v)) < 0.05 ? fmt(v,0) : fmt(v,1); }
 
   function lerpRow(arr, i0, i1, t){
     var a = arr[i0], b = arr[i1];
@@ -1503,7 +1597,8 @@
     }
     function render(){
       needle.setAttribute('transform','rotate('+angleFor(value)+' 50 50)');
-      valueEl.textContent = value.toFixed(cfg.decimals);
+      var k = (value-cfg.min)/cfg.step, offGrid = Math.abs(k - Math.round(k)) > 1e-6;
+      valueEl.textContent = value.toFixed(offGrid && cfg.offGridDecimals !== undefined ? cfg.offGridDecimals : cfg.decimals);
       root.setAttribute('aria-valuenow', value);
       root.classList.toggle('alert', inAlertRange(value));
     }
@@ -1544,9 +1639,16 @@
     });
     root.addEventListener('pointerup', function(){ dragging = false; });
     root.addEventListener('pointercancel', function(){ dragging = false; });
+    // One step up or down the grid. From an off-grid value (set with
+    // setExact) that's the next grid value in that direction.
+    function stepFrom(dir){
+      var k = (value-cfg.min)/cfg.step;
+      var kk = dir > 0 ? Math.floor(k + 1e-6) + 1 : Math.ceil(k - 1e-6) - 1;
+      return cfg.min + kk*cfg.step;
+    }
     root.addEventListener('keydown', function(e){
-      if(e.key==='ArrowUp' || e.key==='ArrowRight'){ setValue(value+cfg.step); e.preventDefault(); }
-      else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ setValue(value-cfg.step); e.preventDefault(); }
+      if(e.key==='ArrowUp' || e.key==='ArrowRight'){ setValue(stepFrom(1)); e.preventDefault(); }
+      else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ setValue(stepFrom(-1)); e.preventDefault(); }
     });
 
     var nudgeBtns = document.querySelectorAll('.nudge-btn[data-dial="'+key+'"]');
@@ -1554,7 +1656,7 @@
       (function(btn){
         btn.addEventListener('click', function(){
           var dir = parseFloat(btn.getAttribute('data-dir'));
-          setValue(value + dir*cfg.step);
+          setValue(stepFrom(dir));
         });
       })(nudgeBtns[i]);
     }
@@ -1564,7 +1666,13 @@
     render();
     return {
       get: function(){ return value; },
-      set: function(v, silent){ setValue(v, silent); }
+      set: function(v, silent){ setValue(v, silent); },
+      // Sets a value off the step grid (still clamped to range).
+      setExact: function(v, silent){
+        value = clamp(v, cfg.min, cfg.max);
+        render();
+        if(!silent) onChange(value, v);
+      }
     };
   }
 
@@ -1681,7 +1789,23 @@
     var exceeds = !withinLimits(rpm, pct, cond);
     var ias = res.tasKt * Math.sqrt(densityRatio(cond.da));
     lastRpm = rpm;
-    els['limit-msg'].textContent = limitMsg;
+    var ftMsg = '';
+    if(atFullThrottle(rpm, pct, cond)){
+      ftMsg = 'You\u2019re in the full-throttle area of the POH tables: at this altitude, full throttle at ' + rpm +
+        ' RPM makes about ' + fmtPct(pct) + '% power.';
+      if(res.shadedCells.length){
+        var labels = res.shadedCells.map(function(p){ return p + '%'; }).join(' and ');
+        ftMsg += ' The POH\u2019s ' + labels + ' setting' + (res.shadedCells.length > 1 ? 's here are' : ' here is') +
+          ' this full-throttle setting, so % power shows what its ' + fmt(res.ffGph,1) + ' GPH fuel flow actually makes.';
+      }
+    } else if(res.shadedCells.length){
+      // A shaded entry the limits above don't quite reach (the POH's
+      // full-throttle MP varies a little with RPM).
+      ftMsg = 'You\u2019re in the full-throttle area of the POH tables: the POH\u2019s ' + res.shadedCells[0] +
+        '% setting here is at full throttle, so % power shows what its ' + fmt(res.ffGph,1) +
+        ' GPH fuel flow actually makes, about ' + fmtPct(pct) + '%.';
+    }
+    els['limit-msg'].textContent = [limitMsg, ftMsg].filter(Boolean).join(' ');
 
     els['hero-rpm'].innerHTML = rpm;
     els['hero-mp'].innerHTML = fmt(res.mp,1) + '<span class="unit">inHg</span>';
@@ -1698,12 +1822,14 @@
     if(exceeds){
       note = 'Out of limits: ' + limitReason(rpm, pct, cond) + ' — reduce % power or increase RPM.';
     } else if(res.exact){
-      note = 'This exact combination is a certified POH cruise power setting.';
-      // The POH lists its 65/75% settings at full throttle once they can't be
-      // reached; the lower fuel flow it prints shows the real power.
-      if(res.ffGph < FF_NORMAL[pct] - 0.01){
-        note += ' The POH lists it at full throttle here — its ' + fmt(res.ffGph,1) +
-          ' GPH fuel flow means about ' + fmt(pct*res.ffGph/FF_NORMAL[pct],0) + '% actual power.';
+      note = 'This exact combination is a certified POH cruise power setting' + (res.shadedCells.length ?
+        ' — printed under ' + res.shadedCells.map(function(p){ return p + '%'; }).join(' and ') +
+        ' power, but at full throttle here, so % power shows the power it actually makes.' : '.');
+      if(res.shadedCells.length > 1){
+        var r65 = lookup(65, cond.pa, cond.isaDev), r75 = lookup(75, cond.pa, cond.isaDev);
+        if(fmt(r65.mp,1) !== fmt(r75.mp,1) || fmt(r65.tasKt,0) !== fmt(r75.tasKt,0)){
+          note += ' (The POH prints ' + fmt(r65.mp,1) + ' inHg / ' + fmt(r65.tasKt,0) + ' KTAS under 65% for this same full-throttle setting; shown here are its 75% figures.)';
+        }
       }
     } else {
       note = 'Estimated by interpolating between the certified 55/65/75% settings — not itself a tabulated POH value.';
@@ -1715,12 +1841,13 @@
     els['hero-note'].classList.toggle('warn', exceeds);
 
     var rows = '';
+    var P = pohPoints(cond);
     PCTS.forEach(function(p){
-      var rr = lookup(p, cond.pa, cond.isaDev);
+      var rr = P[p].row;
       var iias = rr.tasKt * Math.sqrt(densityRatio(cond.da));
-      var cls = (p===pct && rr.rpm===rpm) ? 'current' : '';
+      var cls = (Math.abs(P[p].actual-pct) < 0.01 && rr.rpm===rpm) ? 'current' : '';
       rows += '<tr class="'+cls+'">' +
-        '<td>'+p+'%</td>' +
+        '<td>'+p+'%' + (P[p].shaded ? ' <small>(full throttle, &asymp;' + fmtPct(P[p].actual) + '%)</small>' : '') + '</td>' +
         '<td class="num">'+rr.rpm+'</td>' +
         '<td class="num">'+fmt(rr.mp,1)+'</td>' +
         '<td class="num">'+fmt(rr.ffGph,1)+'</td>' +
@@ -1764,16 +1891,17 @@
       rpm = raised === null ? 2450 : raised;
       rpmDial.set(rpm, true);
       if(withinLimits(rpm, pct0, cond)){
-        return 'RPM raised to ' + rpm + ' so ' + pct0 + '% power stays under the recommended maximum manifold pressure (Section V pg 5-26).';
+        return 'RPM raised to ' + rpm + ' so ' + fmtPct(pct0) + '% power stays under the recommended maximum manifold pressure (Section V pg 5-26).';
       }
       msg = 'RPM raised to ' + rpm + '. ';
     }
     var why = limitReason(rpm, pct0, cond);
-    var pct = solvePctForLimit(rpm, pct0, cond);
-    pctDial.set(pct, true);
-    msg += '% power limited to ' + pct + '%: ' + pct0 + '% isn\u2019t obtainable at ' + rpm + ' RPM — ' + why + '.';
+    var cap = pctCap(rpm, pct0, cond);
+    pctDial.setExact(cap.pct, true);
+    msg += '% power limited to ' + fmtPct(cap.pct) + '%' + (cap.fullThrottle ? ' (full throttle)' : '') + ': ' +
+      fmtPct(pct0) + '% isn\u2019t obtainable at ' + rpm + ' RPM — ' + why + '.';
     for(var r=rpm+50; r<=2450; r+=50){
-      if(withinLimits(r, pct0, cond)){ msg += ' Raising RPM to ' + r + ' would allow ' + pct0 + '%.'; break; }
+      if(withinLimits(r, pct0, cond)){ msg += ' Raising RPM to ' + r + ' would allow ' + fmtPct(pct0) + '%.'; break; }
     }
     return msg;
   }
@@ -1795,12 +1923,12 @@
       var stop = lastRpm;
       while(stop-50 > rpm && withinLimits(stop-50, pct, cond)) stop -= 50;
       rpmDial.set(stop, true);
-      limitMsg = 'RPM is at its limit for ' + pct + '% power: below ' + stop + ' RPM ' +
+      limitMsg = 'RPM is at its limit for ' + fmtPct(pct) + '% power: below ' + stop + ' RPM ' +
         limitReason(stop-50, pct, cond) + '.';
     }
     recompute();
   });
-  pctDial = setupDial('pct', {min:10,max:75,step:5,decimals:0,tickStep:5,value:65,alertRange:[10,40]}, function(){
+  pctDial = setupDial('pct', {min:10,max:75,step:5,decimals:0,offGridDecimals:1,tickStep:5,value:65,alertRange:[10,40]}, function(){
     limitMsg = enforceLimits();
     recompute();
   });
@@ -1808,8 +1936,10 @@
   document.querySelectorAll('#preset-col .preset-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var p = parseInt(btn.getAttribute('data-pct'), 10);
+      // The preset is the printed setting; % power shows what it actually
+      // makes (less than p where the POH lists it at full throttle).
       rpmDial.set(DATA[p].rpm, true);
-      pctDial.set(p, true);
+      pctDial.setExact(pohPoints(readConditions())[p].actual, true);
       limitMsg = enforceLimits();
       recompute();
     });
