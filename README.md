@@ -16,7 +16,7 @@ tab at the top of the app:
   pressure out.
 - **N114EL T/O** — a second N114EL tab for **takeoff distance over a 50 ft barrier**
   (maximum effort, flaps 25°), from field elevation, OAT, altimeter setting, gross
-  weight, wind component, and propeller (3- or 2-blade).
+  weight, and wind component, for N114EL's 3-blade propeller.
 
 ## Install on iPad
 
@@ -247,8 +247,7 @@ using it in flight.
 ### N114EL takeoff distance
 
 You dial in **field elevation, OAT, altimeter setting, gross weight, and wind
-component** (headwind positive, tailwind negative), and pick the **propeller**. The app
-gives takeoff distance over a 50 ft barrier, liftoff and barrier speeds, and density
+component** (headwind positive, tailwind negative). The app gives takeoff distance over a 50 ft barrier, liftoff and barrier speeds, and density
 altitude, plus a table of distances for every 200 lb and 5 kt at the current conditions.
 
 The data comes from the PA-32-301 POH's **Maximum Effort Takeoff Performance — Flaps
@@ -269,10 +268,9 @@ nomograph, and the app follows the same three steps:
 3. **Wind.** The same applies to the eight headwind lines (to 15 kt, about 77–84% at
    15 kt) and the seven tailwind lines (to 5 kt, about +17%).
 
-The result is on the chart's 3-blade scale. The 2-blade scale is a straight conversion,
-fit to its labeled ticks: 1.1105 × 3-blade + 11 ft. The **Propeller** switch chooses which
-one is shown, defaulting to 3-blade, and the other appears underneath. Liftoff and barrier
-speeds come from the chart's table, interpolated by weight.
+The result is read on the chart's **3-blade propeller** scale, N114EL's propeller. The
+chart's 2-blade scale isn't offered. Liftoff and barrier speeds come from the chart's
+table, interpolated by weight.
 
 **Checked against the chart's worked example:** 1,200 ft, 16°C, 3,480 lb, 10 kt
 headwind.
@@ -282,7 +280,6 @@ headwind.
 | After temperature/altitude | ~1,780 ft | 1,784 ft |
 | After weight | ~1,690 ft | 1,699 ft |
 | Final, 3-blade | 1,450 ft | 1,463 ft (shown as 1,460) |
-| Final, 2-blade | prints 1,600 ft; arrow meets the scale at ~1,620 | 1,636 ft |
 | Liftoff / barrier speed | 65 / 70 KIAS | 65 / 70 KIAS |
 
 Across about 82,000 combinations of altitude, temperature, weight, and wind, distance

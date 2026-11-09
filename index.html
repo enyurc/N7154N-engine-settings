@@ -1252,12 +1252,7 @@
 
         <div class="cond-cell switch-cell">
           <span class="dial-caption">Propeller</span>
-          <label class="switch">
-            <input type="checkbox" id="to-prop-toggle" checked
-                   aria-label="Three-blade propeller">
-            <span class="switch-track"><span class="switch-thumb"></span></span>
-          </label>
-          <span class="switch-state on" id="to-prop-state">3-Blade</span>
+          <span class="switch-state on">3-Blade</span>
         </div>
 
         <div class="cond-cell">
@@ -1290,7 +1285,7 @@
           <div class="bezel-item">
             <span class="lbl">Over 50 ft Barrier</span>
             <span class="val mono" id="to-hero-dist">&mdash;<span class="unit">FT</span></span>
-            <span class="sub" id="to-hero-dist-alt"></span>
+            <span class="sub">3-blade propeller</span>
           </div>
           <div class="bezel-item">
             <span class="lbl">Liftoff Speed</span>
@@ -1345,14 +1340,11 @@
       curves are interpolated. <b>Weight:</b> the seven straight guide lines from the 3,600&nbsp;lb reference line to
       2,600&nbsp;lb were traced, and the app interpolates between neighbouring lines. <b>Wind:</b> likewise for the
       eight headwind lines (to 15&nbsp;kt) and seven tailwind lines (to 5&nbsp;kt) from the zero&#8209;wind
-      reference line. The result is read on the <b>3&#8209;blade</b> scale; the chart's separate <b>2&#8209;blade</b>
-      scale is a straight conversion of it (about 11% longer), and the <b>Propeller</b> switch picks which one is
-      shown.</p>
+      reference line. The result is read on the chart's <b>3&#8209;blade propeller</b> scale, N114EL's
+      propeller; the chart's 2&#8209;blade scale isn't used.</p>
       <p>Checked against the chart's own worked example &mdash; 1,200&nbsp;ft, 16&deg;C, 3,480&nbsp;lb, 10&nbsp;kt
       headwind: the chart's arrows read about 1,780&nbsp;ft after the first step, 1,690 after weight, and
-      1,450&nbsp;ft (3&#8209;blade) at the end; the app gives 1,784, 1,699, and 1,463. The example prints
-      1,600&nbsp;ft for the 2&#8209;blade prop, where its arrow actually meets the 2&#8209;blade scale at about
-      1,620; the app gives 1,636. Expect the same few&#8209;percent reading tolerance you'd get using the chart by
+      1,450&nbsp;ft (3&#8209;blade) at the end; the app gives 1,784, 1,699, and 1,463. Expect the same few&#8209;percent reading tolerance you'd get using the chart by
       hand, and treat every number here as <b>estimated</b>.</p>
       <p><b>Liftoff and barrier speeds</b> come from the chart's table (66/71&nbsp;KIAS at 3,600&nbsp;lb down to
       58/61 at 2,600&nbsp;lb), interpolated by weight.</p>
@@ -2896,7 +2888,8 @@
   // Digitized from POH Section 5 Figure 5-15 (Report VB-1060), a three-step
   // nomograph: OAT x pressure altitude -> distance at 3600 lb and zero wind,
   // then weight guide lines, then wind guide lines, read on the 3-blade
-  // propeller scale (the 2-blade scale is a linear conversion of it). Every
+  // propeller scale -- N114EL's propeller; the chart's 2-blade scale isn't
+  // used. Every
   // distance below is in feet on that 3-blade scale until the last step.
 
   // Step 1: each pressure-altitude curve, ln(distance) as a cubic in OAT (C),
@@ -2920,8 +2913,6 @@
   var TO_WEIGHT_LINES = [[1024.1,625.5],[1585.8,940.9],[2099.4,1286.2],[2642.3,1599.1],[3198.6,1930.1],[3748.5,2197.6],[4261.1,2571.0]];
   var TO_HEAD_LINES = [[498.5,416.8],[1009.4,827.3],[1565.5,1236.6],[2113.8,1685.4],[2642.7,2102.9],[3177.6,2498.2],[3714.9,2903.2],[4277.8,3275.5]];
   var TO_TAIL_LINES = [[493.7,623.1],[1007.9,1217.2],[1560.2,1818.9],[2102.2,2451.8],[2642.9,3092.7],[3178.6,3717.4],[3699.2,4363.8]];
-  // 2-blade scale = 1.1105 x 3-blade + 11 ft (fit to its six labeled ticks, within 12 ft).
-  function toTwoBlade(d){ return 1.1105*d + 11.2; }
   // Liftoff / barrier speeds (KIAS) from the chart's table.
   var TO_SPEEDS = [[2600,58,61],[2800,60,63],[3000,61,65],[3200,63,67],[3400,64,69],[3600,66,71]];
 
@@ -2960,15 +2951,14 @@
     if(!r.offChart && r.step1 > TO_STEP1_MAX + 1) r.offChart = 'hot and high enough to run off the top of the chart';
     r.step2 = toGuide(TO_WEIGHT_LINES, r.step1, (3600-weight)/1000);
     r.step3 = wind >= 0 ? toGuide(TO_HEAD_LINES, r.step2, wind/15) : toGuide(TO_TAIL_LINES, r.step2, -wind/5);
-    r.threeBlade = r.step3;
-    r.twoBlade = toTwoBlade(r.step3);
+    r.distance = r.step3;
     var sp = toSpeeds(weight); r.liftoff = sp.liftoff; r.barrier = sp.barrier;
     return r;
   }
 
   var toOatDial, toAltimeterDial, toWeightDial, toWindDial;
   var toEls = {};
-  ['to-chips','to-bezel-pill','to-hero-dist','to-hero-dist-alt','to-hero-liftoff','to-hero-barrier','to-hero-da',
+  ['to-chips','to-bezel-pill','to-hero-dist','to-hero-liftoff','to-hero-barrier','to-hero-da',
    'to-hero-note','to-limit-msg','to-table-body','to-table-note','to-wind-unit'
   ].forEach(function(id){ toEls[id] = document.getElementById(id); });
 
@@ -2994,8 +2984,7 @@
       elev:elev, altimeter:altimeter, oat:oat, pa:pa,
       isaDev: oat - (15 - 1.98*pa/1000),
       da: pa + 120*(oat - (15 - 1.98*pa/1000)),
-      weight: toWeightDial.get(), wind: toWindDial.get(),
-      threeBlade: document.getElementById('to-prop-toggle').checked
+      weight: toWeightDial.get(), wind: toWindDial.get()
     };
   }
   function toRound(d){ return Math.round(d/10)*10; }
@@ -3014,14 +3003,7 @@
 
     toEls['to-wind-unit'].textContent = c.wind > 0 ? 'KT HEAD' : c.wind < 0 ? 'KT TAIL' : 'KT';
 
-    var mine = c.threeBlade ? r.threeBlade : r.twoBlade, other = c.threeBlade ? r.twoBlade : r.threeBlade;
-    if(r.offChart){
-      toEls['to-hero-dist'].innerHTML = '&mdash;<span class="unit">FT</span>';
-      toEls['to-hero-dist-alt'].textContent = '';
-    } else {
-      toEls['to-hero-dist'].innerHTML = toFmtFt(mine) + '<span class="unit">FT</span>';
-      toEls['to-hero-dist-alt'].textContent = (c.threeBlade ? '2-blade prop: ' : '3-blade prop: ') + toFmtFt(other) + ' ft';
-    }
+    toEls['to-hero-dist'].innerHTML = (r.offChart ? '&mdash;' : toFmtFt(r.distance)) + '<span class="unit">FT</span>';
     toEls['to-hero-liftoff'].innerHTML = fmt(r.liftoff,0) + '<span class="unit">KIAS</span>';
     toEls['to-hero-barrier'].innerHTML = fmt(r.barrier,0) + '<span class="unit">KIAS</span>';
     toEls['to-hero-da'].innerHTML = fmt(c.da,0) + '<span class="unit">FT</span>';
@@ -3040,10 +3022,10 @@
     if(r.offChart){
       note = 'No distance: the chart doesn’t cover these conditions.';
     } else {
-      note = 'Read through the chart’s three steps (3-blade scale): ' + toFmtFt(r.step1) + ' ft at 3,600 lb and no wind → ' +
+      note = 'Read through the chart’s three steps: ' + toFmtFt(r.step1) + ' ft at 3,600 lb and no wind → ' +
         toFmtFt(r.step2) + ' ft at ' + c.weight.toLocaleString() + ' lb → ' + toFmtFt(r.step3) + ' ft' +
         (c.wind ? ' with ' + Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'headwind' : 'tailwind') : '') +
-        (c.threeBlade ? '.' : ', ' + toFmtFt(r.twoBlade) + ' ft on the 2-blade scale.') +
+        '.' +
         ' Digitized from POH Figure 5-15 — an estimate with chart-reading tolerance, not a certified figure.';
       if(r.belowSL) note += ' Pressure altitude is below sea level: the sea-level curve is used, which slightly overstates the distance.';
     }
@@ -3055,7 +3037,7 @@
       var sp = toSpeeds(w), cells = '';
       [-5,0,5,10,15].forEach(function(k){
         var rr = toCompute(c.pa, c.oat, w, k);
-        var v = c.threeBlade ? rr.threeBlade : rr.twoBlade;
+        var v = rr.distance;
         var cls = (w === c.weight && k === c.wind) ? ' current-cell' : '';
         cells += '<td class="num'+cls+'">' + (rr.offChart ? '&mdash;' : toFmtFt(v)) + '</td>';
       });
@@ -3065,7 +3047,7 @@
         '<td class="num">'+fmt(sp.barrier,0)+'</td>' + cells + '</tr>';
     });
     toEls['to-table-body'].innerHTML = rows;
-    toEls['to-table-note'].textContent = (c.threeBlade ? '3-blade' : '2-blade') + ' propeller. Speeds in KIAS.' +
+    toEls['to-table-note'].textContent = '3-blade propeller. Speeds in KIAS.' +
       (r.offChart && !/weight|wind/.test(r.offChart) ? ' — = outside the chart.' : '');
   }
 
@@ -3074,13 +3056,6 @@
   toAltimeterDial = setupDial('to-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, toRecompute);
   toWeightDial = setupDial('to-weight', {min:2600,max:3600,step:20,decimals:0,tickStep:100,value:3600}, toRecompute);
   toWindDial = setupDial('to-wind', {min:-5,max:15,step:1,decimals:0,tickStep:5,value:0,alertRange:[-5,-0.5]}, toRecompute);
-  var toPropToggle = document.getElementById('to-prop-toggle');
-  var toPropStateEl = document.getElementById('to-prop-state');
-  toPropToggle.addEventListener('change', function(){
-    toPropStateEl.textContent = toPropToggle.checked ? '3-Blade' : '2-Blade';
-    toPropStateEl.classList.toggle('on', toPropToggle.checked);
-    toRecompute();
-  });
   toRecompute();
 
   // ---- Aircraft tab switching ----
