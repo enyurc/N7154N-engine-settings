@@ -59,9 +59,23 @@ Debonair C33 / Bonanza E33 & F33 Pilot's Operating Handbook, Section V Performan
 5-21 through 5-23 (August 1982 revision) — 55% power at 2300 RPM, and 65%/75% power at
 2450 RPM, each a grid of pressure altitude (SL–16,000 ft) × ISA deviation (−20°C /
 standard / +20°C). RPM is limited to 1800–2450, and manifold pressure is checked against
-the recommended-limits boundary in the **Manifold Pressure vs RPM** chart, pg 5-26 (a
-diagonal ceiling from ~21.4 inHg at 1800 RPM up to 24.0 inHg at 2450 RPM) — the app warns
-when a requested RPM/% power combination would exceed it.
+two limits:
+
+- the recommended-limits boundary in the **Manifold Pressure vs RPM** chart, pg 5-26 (a
+  diagonal ceiling from ~21.4 inHg at 1800 RPM up to 24.0 inHg at 2450 RPM);
+- **full throttle**, read off the cruise tables themselves. From 6,000 ft up, the cells
+  whose fuel flow drops below normal for that power are already at full throttle, and they
+  share one MP per altitude whatever the temperature: 23.1 / 21.7 / 20.1 / 18.6 / 17.3 /
+  16.2 inHg at 6,000–16,000 ft. Below 6,000 ft that value is scaled by standard pressure.
+  Every printed MP is at or under this line.
+
+**Turning the RPM dial never changes % power.** Lower RPM at the same power needs more
+MP. If the new RPM would need more than either limit allows, the RPM stops at the lowest
+setting that still works and the cruise power pane shows a message saying the RPM is at a
+limit and which one. Pushing past either end of the dial (1800 or 2450 RPM) shows the same
+kind of message. Raising RPM is always allowed. Changing **% power** works the other way:
+if the new power needs more MP than the limits allow, RPM is raised to make room, and %
+power is only pulled back if even 2450 RPM isn't enough.
 
 RPM/% power combinations that exactly match a certified table entry (2300 RPM @ 55%, or
 2450 RPM @ 65%/75%) reproduce the tabulated manifold pressure, fuel flow, and TAS exactly.
