@@ -2,12 +2,13 @@
 
 An installable web app (PWA) that calculates cruise power settings — RPM, manifold
 pressure (where applicable), fuel flow, and indicated/true airspeed — at a desired
-% power, for any altitude and temperature, plus takeoff performance where the POH chart
-has been added. The top of the app has two rows of tabs:
+% power, for any altitude and temperature, plus takeoff and landing performance where the
+POH charts have been added. The top of the app has two rows of tabs:
 
 - **Aircraft:** N7154N, N3008U, or N114EL.
-- **Calculator:** **Power Settings** or **Takeoff Perf**. Takeoff Perf is greyed out for an
-  aircraft without takeoff data (currently N7154N and N3008U). The app remembers the
+- **Calculator:** **Power Settings**, **Takeoff Perf**, or **Landing Perf**. Takeoff Perf
+  and Landing Perf are greyed out for an aircraft without that data (currently N7154N and
+  N3008U). The app remembers the
   calculator you picked last, so switching back to an aircraft that has it opens it
   again. It also reopens on the aircraft and calculator you used last.
 
@@ -25,6 +26,9 @@ The aircraft:
   Its **Takeoff Perf** calculator gives **takeoff distance over a 50 ft barrier**
   (maximum effort, flaps 25°) from field elevation, OAT, altimeter setting, gross
   weight, and wind component, for N114EL's 3-blade propeller.
+  Its **Landing Perf** calculator gives **landing distance over a 50 ft barrier** (flaps
+  40°, power off, full stall touchdown, maximum braking) and approach speed from the
+  same kind of inputs.
 
 ## Install on iPad
 
@@ -303,4 +307,53 @@ the sea-level curve, which slightly overstates the distance. Every number is lab
 by hand.
 
 Always cross-check takeoff performance against N114EL's current POH, the actual runway
+surface and slope, and the aircraft's actual weight, and add your own safety margin.
+
+### N114EL landing distance
+
+You dial in **destination field elevation, OAT, altimeter setting, landing weight, and
+wind component** (headwind positive, tailwind negative). The app gives landing distance
+over a 50 ft barrier, approach speed, and density altitude, plus a table of distances for
+every 200 lb and 5 kt at the current conditions.
+
+The data comes from the PA-32-301 POH's **Landing Performance — Standard Wheels, Tires and
+Brakes** chart (Section 5, Figure 5-43, Report VB-1060, issued 1/9/1980): wing flaps 40°,
+power off, paved level dry runway, full stall touchdown, maximum braking. It's the same
+three-step nomograph as the takeoff chart, but every line on it is straight. The source
+image was lower resolution than the takeoff scan (about 13 px per grid cell), so the grid
+was stripped out first and each line fit to the ink that remained, after correcting for
+the scan's 0.4° rotation.
+
+1. **OAT × pressure altitude → distance at 3600 lb, no wind.** The six altitude lines
+   (sea level–10,000 ft) fit to about 1 ft RMS (3.6 ft max). For example, sea level is
+   1546 + 4.23 × OAT ft, or about 1,610 ft on a standard day. Altitudes between lines are
+   interpolated.
+2. **Weight.** Seven guide lines from the 3600 lb reference line to 2600 lb, each fit to
+   under 1 ft; at 2600 lb they come to 81–83% of the starting distance. The app
+   interpolates between neighbouring lines. The chart's coldest sea-level conditions start
+   below its lowest guide line; there the app continues the trend of the nearest two
+   lines, which gives a slightly longer distance than running parallel to the lowest one.
+3. **Wind.** Eight headwind lines to 15 kt, each fit to under 1 ft and interpolated the
+   same way (about 250–280 ft shorter at 15 kt). The dashed tailwind lines, drawn to 5 kt,
+   are parallel: 57.0–60.7 ft per knot across the six that could be measured, so the app
+   adds 59.1 ft per knot of tailwind.
+
+**Approach speed** comes from the scale across the top of the chart's weight panel: 79
+KIAS at 3600 lb down to 76 KIAS at 2600 lb, with evenly spaced ticks.
+
+**Checked against the chart's worked example:** 400 ft, 24°C, 3,300 lb, 5 kt headwind.
+The chart prints 1,490 ft and 78 KIAS. The app gives 1,493 ft (shown as 1,490) and 78
+KIAS. Across about 82,000 combinations of altitude, temperature, weight, and wind,
+distance always increases with altitude, temperature, weight, and tailwind, and decreases
+with headwind.
+
+**Limits.** The chart covers sea level–10,000 ft pressure altitude, −40 to +40°C,
+2600–3600 lb, and up to 15 kt headwind or 5 kt tailwind. Its lines stop at about 2,040 ft
+at the top, so hot-and-high conditions, and tailwinds on already-long landings, run off
+it; the app then shows no distance and says why. The chart's distance scale starts at
+1,000 ft. A result below that (cold, light, strong headwind) is shown as "under 1,000".
+A pressure altitude below sea level uses the sea-level line, which slightly overstates
+the distance. Every number is labeled **estimated**.
+
+Always cross-check landing performance against N114EL's current POH, the actual runway
 surface and slope, and the aircraft's actual weight, and add your own safety margin.
