@@ -1,7 +1,7 @@
 {
   "name": "Aircraft Power Settings",
   "short_name": "Aircraft Power",
-  "description": "RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), plus N114EL takeoff and landing distance.",
+  "description": "RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), plus takeoff distance for N7154N and takeoff and landing distance for N114EL.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

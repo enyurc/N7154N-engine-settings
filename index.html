@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aircraft Power Settings</title>
-<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), plus N114EL takeoff and landing distance, interpolated from each aircraft's certified POH performance charts.">
+<meta name="description" content="Cruise RPM, manifold pressure, fuel flow, and IAS/TAS calculator for N7154N (Beech E33 Bonanza), N3008U (Piper PA-28-181 Archer II), and N114EL (Piper PA-32-301 Saratoga), plus takeoff distance for N7154N and takeoff and landing distance for N114EL, interpolated from each aircraft's certified POH performance charts.">
 <meta name="theme-color" content="#12161B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -384,6 +384,8 @@
   thead tr + tr th:first-child{text-align:right;}
   .table-note{font-size:.76rem;color:var(--ink-dim);margin:.6rem 0 0;}
   .table-note:empty{display:none;}
+  table.pairs td, table.pairs th{white-space:nowrap;}
+  .table-scroll table.pairs{min-width:700px;}
   .table-scroll{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
   .table-scroll table{min-width:520px;}
 
@@ -1577,6 +1579,224 @@
       N114EL's current, complete Pilot's Operating Handbook, the actual runway surface and slope, and the aircraft's
       actual weight, and add your own safety margin. The chart assumes a paved, level, dry runway, a full stall
       touchdown, and maximum braking.</span>
+    </div>
+  </section>
+
+</div>
+
+<div class="page" id="page-n7154n-to">
+
+  <section id="n7to-conditions">
+    <p class="section-label">Conditions</p>
+    <div class="card" id="n7to-conditions-card">
+      <div class="cond-grid">
+
+        <div class="cond-cell cond-altitude">
+          <span class="dial-caption">Field Elevation</span>
+          <div class="gauge select-face" id="n7to-elev-face">
+            <span class="select-value"><span id="n7to-elev-display">700</span></span>
+            <span class="dial-unit">FT</span>
+            <span class="select-chevron">&#9662;</span>
+            <select id="n7to-in-elev" class="native-select" aria-label="Field elevation"></select>
+          </div>
+          <span class="dial-hint">pressure altitude corrected below</span>
+        </div>
+
+        <div class="cond-cell cond-temp">
+          <span class="dial-caption">Outside Air Temp</span>
+          <div class="gauge dial" id="dial-n7to-oat" tabindex="0" role="slider"
+               aria-label="Outside air temperature" aria-valuemin="-40" aria-valuemax="60" aria-valuenow="15">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">15</span>
+              <span class="dial-unit">&deg;C</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n7to-oat" data-dir="-1" aria-label="Decrease temperature">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n7to-oat" data-dir="1" aria-label="Increase temperature">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell cond-altimeter">
+          <span class="dial-caption">Altimeter Setting</span>
+          <div class="gauge dial" id="dial-n7to-altimeter" tabindex="0" role="slider"
+               aria-label="Altimeter setting" aria-valuemin="28" aria-valuemax="31" aria-valuenow="29.92">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+              <circle class="dial-hub" cx="50" cy="50" r="3.5"></circle>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">29.92</span>
+              <span class="dial-unit">inHg</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n7to-altimeter" data-dir="-1" aria-label="Decrease altimeter setting">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n7to-altimeter" data-dir="1" aria-label="Increase altimeter setting">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="derived-chips" id="n7to-chips"></div>
+    </div>
+  </section>
+
+  <section id="n7to-takeoff">
+    <p class="section-label">Takeoff &middot; flaps up, full throttle, 2600 RPM</p>
+    <div class="card">
+      <div class="power-grid">
+
+        <div class="cond-cell">
+          <span class="dial-caption">Takeoff Weight</span>
+          <div class="gauge dial" id="dial-n7to-weight" tabindex="0" role="slider"
+               aria-label="Takeoff weight" aria-valuemin="2400" aria-valuemax="3050" aria-valuenow="3050">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">3050</span>
+              <span class="dial-unit">LB</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n7to-weight" data-dir="-1" aria-label="Decrease weight">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n7to-weight" data-dir="1" aria-label="Increase weight">+</button>
+          </div>
+        </div>
+
+        <div class="cond-cell switch-cell">
+          <span class="dial-caption">Wing Flaps</span>
+          <span class="switch-state on">Up</span>
+        </div>
+
+        <div class="cond-cell">
+          <span class="dial-caption">Wind Component</span>
+          <div class="gauge dial" id="dial-n7to-wind" tabindex="0" role="slider"
+               aria-label="Wind component, headwind positive" aria-valuemin="-10" aria-valuemax="30" aria-valuenow="0">
+            <svg viewBox="0 0 100 100">
+              <circle class="dial-face" cx="50" cy="50" r="46" fill="none"></circle>
+              <g class="dial-ticks"></g>
+              <g class="dial-needle"><line x1="50" y1="25" x2="50" y2="8"></line></g>
+            </svg>
+            <div class="dial-readout">
+              <span class="dial-value num">0</span>
+              <span class="dial-unit" id="n7to-wind-unit">KT</span>
+            </div>
+          </div>
+          <div class="dial-nudge">
+            <button type="button" class="nudge-btn" data-dial="n7to-wind" data-dir="-1" aria-label="Less headwind">&minus;</button>
+            <button type="button" class="nudge-btn" data-dial="n7to-wind" data-dir="1" aria-label="More headwind">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="limit-msg" id="n7to-limit-msg" role="status" aria-live="polite"></p>
+
+      <div class="bezel">
+        <p class="bezel-title">Takeoff performance <span class="pill" id="n7to-bezel-pill"></span></p>
+        <div class="bezel-grid">
+          <div class="bezel-item">
+            <span class="lbl">Ground Roll</span>
+            <span class="val mono" id="n7to-hero-roll">&mdash;<span class="unit">FT</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Over 50 ft Obstacle</span>
+            <span class="val mono" id="n7to-hero-dist">&mdash;<span class="unit">FT</span></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Liftoff Speed</span>
+            <span class="val mono small" id="n7to-hero-liftoff">&mdash;<span class="unit">KIAS</span></span>
+            <span class="sub" id="n7to-hero-liftoff-mph"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Speed at 50 ft</span>
+            <span class="val mono small" id="n7to-hero-barrier">&mdash;<span class="unit">KIAS</span></span>
+            <span class="sub" id="n7to-hero-barrier-mph"></span>
+          </div>
+          <div class="bezel-item">
+            <span class="lbl">Density Altitude</span>
+            <span class="val mono small" id="n7to-hero-da">&mdash;<span class="unit">FT</span></span>
+          </div>
+        </div>
+        <p class="bezel-note" id="n7to-hero-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="n7to-table">
+    <p class="section-label">Ground roll / distance over 50 ft at these conditions</p>
+    <div class="table-scroll">
+      <table class="pairs">
+        <thead>
+          <tr>
+            <th rowspan="2">Weight</th>
+            <th rowspan="2">Liftoff</th>
+            <th rowspan="2">50 ft</th>
+            <th colspan="5" class="th-group">Ground roll / over 50 ft (ft) by wind (kt)</th>
+          </tr>
+          <tr>
+            <th>10 tail</th><th>0</th><th>10 head</th><th>20 head</th><th>30 head</th>
+          </tr>
+        </thead>
+        <tbody id="n7to-table-body"></tbody>
+      </table>
+    </div>
+    <p class="table-note" id="n7to-table-note"></p>
+  </section>
+
+  <section id="n7to-source">
+    <p class="section-label">Data source</p>
+    <details class="source" id="n7to-source-details">
+      <summary>How these numbers are calculated <span class="chev">&#9656;</span></summary>
+      <p>Digitized from the <b>Take&#8209;Off Distance</b> chart, Debonair C33 / Bonanza E33 &amp; F33 Pilot's Operating
+      Handbook, Section V Performance, page 5&#8209;18 (August 1982). Associated conditions: <b>full throttle, 2600
+      RPM, mixture leaned to the appropriate fuel flow, flaps up, landing gear retracted after a positive climb is
+      established, cowl flaps open</b>.</p>
+      <p>The app follows the chart's four steps the way you would read it. <b>Temperature and pressure altitude:</b>
+      the six pressure&#8209;altitude curves (sea level to 10,000&nbsp;ft) were traced off the scan and fit as smooth
+      curves, within about 5&nbsp;ft; altitudes between curves are interpolated. <b>Weight:</b> the seven curved guide
+      lines from the 3,050&nbsp;lb reference line to 2,400&nbsp;lb, fit the same way. <b>Wind:</b> the seven straight
+      headwind lines (to 30&nbsp;kt) and seven dashed tailwind lines (to 10&nbsp;kt, adding about 22%). That gives
+      <b>ground roll</b>. <b>Obstacle height:</b> the eight straight lines from ground roll to the <b>total distance
+      over a 50&nbsp;ft obstacle</b> (about 1.6 to 1.9 times the ground roll). At every step the app keeps its
+      proportional place between the two neighbouring guide lines. The scan resolves about 9&nbsp;ft per pixel, so
+      treat every number as <b>estimated</b>.</p>
+      <p><b>The chart's own worked example</b> &mdash; 15&deg;C, 5,650&nbsp;ft, 3,050&nbsp;lb, 9.5&nbsp;kt headwind
+      &mdash; prints a 2,000&nbsp;ft ground roll and 3,150&nbsp;ft over 50&nbsp;ft. The app gives about 2,030 and
+      3,300&nbsp;ft. Two things in how the example is drawn account for it. Its arrow leaves the altitude curves at
+      about 2,160&nbsp;ft, where exact interpolation between the 4,000 and 6,000&nbsp;ft curves gives 2,190. And in
+      the obstacle panel its arrow runs nearly parallel to the guide line below it instead of keeping its place
+      between the two lines either side, which is worth about 100&nbsp;ft. Starting from the example's own arrow, the
+      app's wind step lands on 2,000&nbsp;ft. The app's reading is the longer, more conservative one.</p>
+      <p><b>Liftoff and 50&nbsp;ft speeds</b> come from the chart's table (68/74&nbsp;knots at 3,050&nbsp;lb down to
+      62/68 at 2,400&nbsp;lb), interpolated by weight.</p>
+      <p><b>Limits:</b> each altitude curve is drawn over a limited temperature range (sea level from about
+      &minus;18 to 55&deg;C; 10,000&nbsp;ft from about &minus;35 to 35&deg;C). Warmer than a curve's end, the app
+      shows no distance rather than extrapolate; colder than its start, it uses the curve's coldest point, which
+      overstates the distance. The chart covers 2,400&ndash;3,050&nbsp;lb, up to 30&nbsp;kt headwind or 10&nbsp;kt
+      tailwind, a distance scale from 1,000 to 7,000&nbsp;ft, and sea level to 10,000&nbsp;ft pressure altitude (a
+      pressure altitude below sea level uses the sea&#8209;level curve). The chart's note applies: its obstacle
+      guide lines aren't valid for obstacle heights between 0 and 50&nbsp;ft.</p>
+    </details>
+  </section>
+
+  <section id="n7to-notes">
+    <div class="disclaimer">
+      <span>&#9888;&#65039;</span>
+      <span><b>Reference tool, not a substitute for the POH.</b> Always cross-check takeoff performance against
+      N7154N's current, complete Pilot's Operating Handbook, the actual runway surface and slope, and the aircraft's
+      actual weight, and add your own safety margin.</span>
     </div>
   </section>
 
@@ -3436,6 +3656,231 @@
   ldWindDial = setupDial('ld-wind', {min:-5,max:15,step:1,decimals:0,tickStep:5,value:0,alertRange:[-5,-0.5]}, ldRecompute);
   ldRecompute();
 
+  // ============================================================
+  // N7154N takeoff -- Beech E33 take-off distance (ground roll and over 50 ft)
+  // ============================================================
+  //
+  // Digitized from the POH's "Take-Off Distance" chart (Section V pg 5-18,
+  // August 1982): full throttle, 2600 RPM, flaps up, cowl flaps open. A
+  // four-step nomograph: OAT x pressure altitude -> distance at 3050 lb and
+  // zero wind, then weight guide curves, then wind lines (which gives ground
+  // roll), then obstacle-height lines to the total over a 50 ft obstacle.
+  // The scan resolves about 9 ft per pixel.
+
+  // Step 1: each pressure-altitude curve, ln(distance) as a cubic in OAT (C),
+  // fit to within ~5 ft, with the OAT range it's actually drawn over.
+  var N7TO_OAT_CURVES = {
+    0: [-1.9657231e-07, 1.9138515e-05, 0.0057688747, 7.1805369],
+    2000: [3.5833913e-08, -1.5265117e-06, 0.0066571675, 7.3114042],
+    4000: [2.2239713e-08, -4.7327461e-06, 0.0071210223, 7.4551848],
+    6000: [2.1631805e-07, -1.2641737e-05, 0.0074589774, 7.6083282],
+    8000: [2.5155625e-07, 6.6546746e-07, 0.0076448041, 7.7715916],
+    10000: [2.6934224e-07, 5.6009577e-07, 0.0081279609, 7.9520916]
+  };
+  var N7TO_OAT_RANGE = {0:[-18,55], 2000:[-20,51], 4000:[-22,46], 6000:[-30,44], 8000:[-30,42], 10000:[-35,35]};
+  var N7TO_PAS = [0, 2000, 4000, 6000, 8000, 10000];
+  // Step 2: the curved weight guide lines, lowest first -- ln(distance) as a
+  // polynomial in (3050 - weight). The lowest runs off the bottom of the
+  // chart at about 2700 lb, so below that it continues at its last slope.
+  var N7TO_WEIGHT_CURVES = [
+    [9.9211927e-07, -0.00085763652, 7.1108456],
+    [-8.4105704e-11, 2.2934544e-07, -0.00068188243, 7.5199342],
+    [-3.5478164e-10, 5.3834273e-07, -0.00084781205, 7.7609883],
+    [-3.4611854e-10, 4.13565e-07, -0.00081369179, 7.95288],
+    [-1.8084329e-10, 8.9896198e-08, -0.00072874352, 8.114847],
+    [-3.3228598e-10, 3.1334387e-07, -0.00082832315, 8.2516625],
+    [-4.3504891e-10, 5.2953789e-07, -0.00093625947, 8.3739037]
+  ];
+  // Steps 3 and 4: straight guide lines as [distance at the reference line,
+  // distance at the far end] -- 0 -> 30 kt headwind, 0 -> 10 kt tailwind,
+  // and ground roll -> total over a 50 ft obstacle.
+  var N7TO_HEAD_LINES = [[1269.8,990.5],[1758.3,1350.7],[2250.7,1729.4],[2744.3,2143.1],[3246.5,2528.8],[3731.8,2932.0],[4229.5,3336.5]];
+  var N7TO_TAIL_LINES = [[1269.8,1555.6],[1758.3,2153.3],[2250.7,2751.8],[2744.3,3363.0],[3246.5,3978.5],[3731.8,4558.8],[4229.5,5112.1]];
+  var N7TO_OBSTACLE_LINES = [[1155.2,1819.0],[1464.0,2345.3],[1778.5,2898.7],[2134.9,3464.7],[2462.8,4168.4],[2847.9,4873.7],[3214.5,5678.0],[3590.3,6725.7]];
+  var N7TO_SCALE_MIN = 1000, N7TO_SCALE_MAX = 7000, N7TO_ROLL_MAX = 5500;
+  // Take-off speed table: [weight, liftoff kt, 50 ft kt, liftoff mph, 50 ft mph]
+  var N7TO_SPEEDS = [[2400,62,68,71,78],[2700,65,71,75,82],[2900,67,73,77,84],[3050,68,74,78,85]];
+
+  function n7toPoly(c, x){ var v = 0; for(var i=0; i<c.length; i++) v = v*x + c[i]; return v; }
+  // Returns the step-1 distance and the OAT range the chart covers at this
+  // pressure altitude. Colder than the range uses its cold end.
+  function n7toStep1(pa, t){
+    var p = clamp(pa, 0, 10000);
+    var i = Math.min(Math.floor(p/2000), N7TO_PAS.length-2), f = (p - N7TO_PAS[i])/2000;
+    var a = N7TO_PAS[i], b = N7TO_PAS[i+1];
+    var lo = (1-f)*N7TO_OAT_RANGE[a][0] + f*N7TO_OAT_RANGE[b][0];
+    var hi = (1-f)*N7TO_OAT_RANGE[a][1] + f*N7TO_OAT_RANGE[b][1];
+    var tt = Math.max(t, lo);
+    return {
+      d: (1-f)*Math.exp(n7toPoly(N7TO_OAT_CURVES[a], tt)) + f*Math.exp(n7toPoly(N7TO_OAT_CURVES[b], tt)),
+      lo: lo, hi: hi
+    };
+  }
+  function n7toWeightCurve(i, w){
+    var c = N7TO_WEIGHT_CURVES[i], x = 3050 - w;
+    if(i === 0 && x > 350){
+      var slope = 2*c[0]*350 + c[1];
+      return Math.exp(n7toPoly(c, 350) + slope*(x-350));
+    }
+    return Math.exp(n7toPoly(c, x));
+  }
+  // Keeps the proportional place between the two neighbouring weight curves.
+  function n7toWeightStep(d0, w){
+    var n = N7TO_WEIGHT_CURVES.length, i = 0;
+    while(i < n-2 && n7toWeightCurve(i+1, 3050) <= d0) i++;
+    var s0 = n7toWeightCurve(i, 3050), s1 = n7toWeightCurve(i+1, 3050);
+    var g = (d0 - s0)/(s1 - s0);
+    return (1-g)*n7toWeightCurve(i, w) + g*n7toWeightCurve(i+1, w);
+  }
+  function n7toSpeeds(w){
+    var s = N7TO_SPEEDS, wc = clamp(w, 2400, 3050), i = 0;
+    while(i < s.length-2 && s[i+1][0] < wc) i++;
+    var f = (wc - s[i][0])/(s[i+1][0] - s[i][0]);
+    function L(k){ return s[i][k] + f*(s[i+1][k]-s[i][k]); }
+    return {liftoff:L(1), barrier:L(2), liftoffMph:L(3), barrierMph:L(4)};
+  }
+  // wind: headwind positive, tailwind negative (kt). ldGuide interpolates
+  // between neighbouring straight guide lines and continues the nearest
+  // pair's trend past either end.
+  function n7toCompute(pa, oat, weight, wind){
+    var r = {belowSL: pa < 0, offChart: null, totalOff: null};
+    var s1 = n7toStep1(pa, oat);
+    r.oatLo = s1.lo; r.oatHi = s1.hi; r.cold = oat < s1.lo - 0.5;
+    if(pa > 10000) r.offChart = 'pressure altitude above 10,000 ft';
+    else if(oat > s1.hi + 0.5) r.offChart = 'warmer than the chart’s curve for this altitude, which stops at ' + fmt(s1.hi,0) + '°C';
+    else if(weight < 2400 || weight > 3050) r.offChart = 'weight outside 2,400–3,050 lb';
+    else if(wind > 30 || wind < -10) r.offChart = 'wind outside 30 kt headwind / 10 kt tailwind';
+    r.step1 = s1.d;
+    r.step2 = n7toWeightStep(r.step1, weight);
+    r.roll = wind >= 0 ? ldGuide(N7TO_HEAD_LINES, r.step2, wind/30) : ldGuide(N7TO_TAIL_LINES, r.step2, -wind/10);
+    if(!r.offChart && r.roll > N7TO_ROLL_MAX) r.offChart = 'ground roll runs off the top of the chart';
+    r.rollBelowScale = r.roll < N7TO_SCALE_MIN;
+    // Below the 1,000 ft scale the chart can't be read: report "under" the
+    // values at 1,000 ft of ground roll.
+    r.total = ldGuide(N7TO_OBSTACLE_LINES, Math.max(r.roll, N7TO_SCALE_MIN), 1);
+    if(!r.offChart && r.total > N7TO_SCALE_MAX) r.totalOff = 'the distance over 50 ft runs off the top of the chart’s 7,000 ft scale';
+    var sp = n7toSpeeds(weight);
+    r.liftoff = sp.liftoff; r.barrier = sp.barrier; r.liftoffMph = sp.liftoffMph; r.barrierMph = sp.barrierMph;
+    return r;
+  }
+
+  var n7toOatDial, n7toAltimeterDial, n7toWeightDial, n7toWindDial;
+  var n7toEls = {};
+  ['n7to-chips','n7to-bezel-pill','n7to-hero-roll','n7to-hero-dist','n7to-hero-liftoff','n7to-hero-liftoff-mph',
+   'n7to-hero-barrier','n7to-hero-barrier-mph','n7to-hero-da','n7to-hero-note','n7to-limit-msg',
+   'n7to-table-body','n7to-table-note','n7to-wind-unit'
+  ].forEach(function(id){ n7toEls[id] = document.getElementById(id); });
+
+  function n7toPopulateElev(){
+    var sel = document.getElementById('n7to-in-elev');
+    for(var a=0; a<=10000; a+=100){
+      var opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a.toLocaleString() + ' ft';
+      if(a === 700) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function(){
+      document.getElementById('n7to-elev-display').textContent = parseFloat(sel.value).toLocaleString();
+      n7toRecompute();
+    });
+  }
+  function n7toReadConditions(){
+    var elev = parseFloat(document.getElementById('n7to-in-elev').value) || 0;
+    var altimeter = n7toAltimeterDial.get(), oat = n7toOatDial.get();
+    var pa = pressureAltitude(elev, altimeter);
+    return {
+      elev:elev, altimeter:altimeter, oat:oat, pa:pa,
+      isaDev: oat - (15 - 1.98*pa/1000),
+      da: pa + 120*(oat - (15 - 1.98*pa/1000)),
+      weight: n7toWeightDial.get(), wind: n7toWindDial.get()
+    };
+  }
+  function n7toFmtRoll(r){ return r.rollBelowScale ? 'under 1,000' : toFmtFt(r.roll); }
+  function n7toFmtTotal(r){ return (r.rollBelowScale ? 'under ' : '') + toFmtFt(r.total); }
+
+  function n7toRecompute(){
+    var c = n7toReadConditions();
+    var r = n7toCompute(c.pa, c.oat, c.weight, c.wind);
+    var condOff = !!r.offChart && /altitude|warmer/.test(r.offChart);
+    document.getElementById('n7to-conditions-card').classList.toggle('range-alert', condOff);
+
+    n7toEls['n7to-chips'].innerHTML =
+      '<span class="chip"><b class="num">'+fmt(c.pa,0)+'</b><small>ft pressure alt.</small></span>' +
+      '<span class="chip"><b class="num">'+fmt(c.da,0)+'</b><small>ft density alt.</small></span>' +
+      '<span class="chip"><b class="num">'+(c.isaDev>=0?'+':'')+fmt(c.isaDev,1)+'&deg;C</b><small>ISA deviation</small></span>' +
+      (condOff ? '<span class="chip warn"><b>&#9888;</b><small>outside chart range</small></span>' : '');
+
+    n7toEls['n7to-wind-unit'].textContent = c.wind > 0 ? 'KT HEAD' : c.wind < 0 ? 'KT TAIL' : 'KT';
+
+    n7toEls['n7to-hero-roll'].innerHTML = (r.offChart ? '&mdash;' : n7toFmtRoll(r)) + '<span class="unit">FT</span>';
+    n7toEls['n7to-hero-dist'].innerHTML = (r.offChart || r.totalOff ? '&mdash;' : n7toFmtTotal(r)) + '<span class="unit">FT</span>';
+    n7toEls['n7to-hero-liftoff'].innerHTML = fmt(r.liftoff,0) + '<span class="unit">KIAS</span>';
+    n7toEls['n7to-hero-liftoff-mph'].textContent = fmt(r.liftoffMph,0) + ' MPH';
+    n7toEls['n7to-hero-barrier'].innerHTML = fmt(r.barrier,0) + '<span class="unit">KIAS</span>';
+    n7toEls['n7to-hero-barrier-mph'].textContent = fmt(r.barrierMph,0) + ' MPH';
+    n7toEls['n7to-hero-da'].innerHTML = fmt(c.da,0) + '<span class="unit">FT</span>';
+    n7toEls['n7to-bezel-pill'].textContent = 'estimated';
+    n7toEls['n7to-bezel-pill'].className = 'pill warn';
+
+    var msg = '';
+    if(r.offChart){
+      msg = 'Outside the POH take-off chart (' + r.offChart + ') — no distance shown. Don’t extrapolate takeoff performance.';
+    } else if(r.totalOff){
+      msg = 'Outside the POH take-off chart: ' + r.totalOff + ' — only ground roll is shown.';
+    } else if(c.wind < 0){
+      msg = 'Tailwind: the chart allows for up to 10 kt, and 10 kt adds about 22% to the ground roll.';
+    }
+    n7toEls['n7to-limit-msg'].textContent = msg;
+
+    var note;
+    if(r.offChart){
+      note = 'No distance: the chart doesn’t cover these conditions.';
+    } else {
+      note = 'Read through the chart’s steps: ' + toFmtFt(r.step1) + ' ft at 3,050 lb and no wind → ' +
+        toFmtFt(r.step2) + ' ft at ' + c.weight.toLocaleString() + ' lb → ' + n7toFmtRoll(r) + ' ft ground roll' +
+        (c.wind ? ' with ' + Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'headwind' : 'tailwind') : '') +
+        (r.totalOff ? '.' : ' → ' + n7toFmtTotal(r) + ' ft over a 50 ft obstacle.') +
+        ' Digitized from the POH take-off distance chart (pg 5-18) — an estimate with chart-reading tolerance, not a certified figure.';
+      if(r.rollBelowScale) note += ' The ground roll is below the chart’s 1,000 ft scale, so both figures are shown as upper bounds.';
+      if(r.cold) note += ' It’s colder than the chart’s curve for this altitude, which starts at ' + fmt(r.oatLo,0) +
+        '°C: that coldest point is used, which overstates the distance.';
+      if(r.belowSL) note += ' Pressure altitude is below sea level: the sea-level curve is used, which slightly overstates the distance.';
+    }
+    n7toEls['n7to-hero-note'].textContent = note;
+    n7toEls['n7to-hero-note'].classList.toggle('warn', !!r.offChart);
+
+    var rows = '', anyDash = false;
+    [3050,2900,2700,2400].forEach(function(w){
+      var sp = n7toSpeeds(w), cells = '';
+      [-10,0,10,20,30].forEach(function(k){
+        var rr = n7toCompute(c.pa, c.oat, w, k);
+        var cls = (w === c.weight && k === c.wind) ? ' current-cell' : '';
+        var txt;
+        if(rr.offChart){ txt = '&mdash;'; anyDash = true; }
+        else {
+          txt = (rr.rollBelowScale ? '&lt;1,000' : toFmtFt(rr.roll)) + ' / ' +
+            (rr.totalOff ? '&mdash;' : (rr.rollBelowScale ? '&lt;' : '') + toFmtFt(rr.total));
+          if(rr.totalOff) anyDash = true;
+        }
+        cells += '<td class="num'+cls+'">' + txt + '</td>';
+      });
+      rows += '<tr class="'+(w === c.weight ? 'current' : '')+'">' +
+        '<td>'+w.toLocaleString()+' lb</td>' +
+        '<td class="num">'+fmt(sp.liftoff,0)+'</td>' +
+        '<td class="num">'+fmt(sp.barrier,0)+'</td>' + cells + '</tr>';
+    });
+    n7toEls['n7to-table-body'].innerHTML = rows;
+    n7toEls['n7to-table-note'].textContent = 'Speeds in knots.' + (anyDash ? ' — = outside the chart.' : '');
+  }
+
+  n7toPopulateElev();
+  n7toOatDial = setupDial('n7to-oat', {min:-40,max:60,step:1,decimals:0,tickStep:10,value:15}, n7toRecompute);
+  n7toAltimeterDial = setupDial('n7to-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, n7toRecompute);
+  n7toWeightDial = setupDial('n7to-weight', {min:2400,max:3050,step:10,decimals:0,tickStep:50,value:3050}, n7toRecompute);
+  n7toWindDial = setupDial('n7to-wind', {min:-10,max:30,step:1,decimals:0,tickStep:5,value:0,alertRange:[-10,-0.5]}, n7toRecompute);
+  n7toRecompute();
+
   // ---- Aircraft tab switching ----
   var PLANE_META = {
     n7154n: {
@@ -3462,6 +3907,14 @@
         '<span class="badge">POH Section 5, VB-1060</span>' +
         '<span class="badge">3600 lb gross wt</span>'
     },
+    'n7154n-to': {
+      tail: 'N7154N &middot; Naperville Flying Club',
+      h1: 'Takeoff Distance Calculator',
+      subhead: '1968 Beechcraft E33 Bonanza &middot; Ground roll and distance over a 50 ft obstacle',
+      badges: '<span class="badge">Full throttle, 2600 RPM</span>' +
+        '<span class="badge">Flaps up, cowl flaps open</span>' +
+        '<span class="badge">POH Section V pg 5-18, 8/1982</span>'
+    },
     'n114el-ld': {
       tail: 'N114EL',
       h1: 'Landing Distance Calculator',
@@ -3485,7 +3938,7 @@
   // calculator last picked is remembered, so coming back to an aircraft that
   // has it shows it again.
   var AIRCRAFT = ['n7154n', 'n3008u', 'n114el'];
-  var PAGES = {n7154n:{power:'n7154n'}, n3008u:{power:'n3008u'}, n114el:{power:'n114el', takeoff:'n114el-to', landing:'n114el-ld'}};
+  var PAGES = {n7154n:{power:'n7154n', takeoff:'n7154n-to'}, n3008u:{power:'n3008u'}, n114el:{power:'n114el', takeoff:'n114el-to', landing:'n114el-ld'}};
   var VIEWS = ['power', 'takeoff', 'landing'];
   var VIEW_NAMES = {power:'power settings', takeoff:'takeoff performance', landing:'landing performance'};
   var curPlane = 'n7154n', wantView = 'power';

@@ -6,16 +6,19 @@ pressure (where applicable), fuel flow, and indicated/true airspeed — at a des
 POH charts have been added. The top of the app has two rows of tabs:
 
 - **Aircraft:** N7154N, N3008U, or N114EL.
-- **Calculator:** **Power Settings**, **Takeoff Perf**, or **Landing Perf**. Takeoff Perf
-  and Landing Perf are greyed out for an aircraft without that data (currently N7154N and
-  N3008U). The app remembers the
-  calculator you picked last, so switching back to an aircraft that has it opens it
+- **Calculator:** **Power Settings**, **Takeoff Perf**, or **Landing Perf**. A calculator
+  is greyed out for an aircraft without that data. Currently N7154N has power settings
+  and takeoff, N3008U has power settings only, and N114EL has all three. The app remembers
+  the calculator you picked last, so switching back to an aircraft that has it opens it
   again. It also reopens on the aircraft and calculator you used last.
 
 The aircraft:
 
 - **N7154N** — a 1968 Beechcraft E33 Bonanza (Naperville Flying Club) with a
-  Continental IO-470-K (225 BHP @ 2600 RPM), constant-speed prop.
+  Continental IO-470-K (225 BHP @ 2600 RPM), constant-speed prop. Its **Takeoff Perf**
+  calculator gives **ground roll and distance over a 50 ft obstacle** (flaps up, full
+  throttle, 2600 RPM) from field elevation, OAT, altimeter setting, takeoff weight, and
+  wind component.
 - **N3008U** — a 1977 Piper PA-28-181 Cherokee Archer II with a Lycoming O-360
   (180 BHP), fixed-pitch prop. Since a fixed-pitch prop has no independent
   manifold-pressure control, N3008U's page has a single input (% power) and
@@ -135,6 +138,66 @@ error and is only an estimate.
 The tables were transcribed from scanned copies of the POH. Spot-check the numbers against
 your own copy, and always cross-check any setting against N7154N's current POH and actual
 weight before using it in flight.
+
+### N7154N takeoff distance
+
+You dial in **field elevation, OAT, altimeter setting, takeoff weight, and wind
+component** (headwind positive, tailwind negative). The app gives **ground roll**, **total
+distance over a 50 ft obstacle**, liftoff and 50 ft speeds, and density altitude, plus a
+table of both distances by weight and wind at the current conditions.
+
+The data comes from the POH's **Take-Off Distance** chart (Debonair C33 / Bonanza E33 & F33,
+Section V Performance, page 5-18, August 1982): full throttle, 2600 RPM, mixture leaned to
+the appropriate fuel flow, flaps up, gear retracted after a positive climb is established,
+cowl flaps open. It's a four-step nomograph, and the app follows the same four steps,
+keeping its proportional place between the two neighbouring guide lines at each one:
+
+1. **OAT × pressure altitude → distance at 3050 lb, no wind.** The six altitude curves
+   (sea level–10,000 ft) were traced and fit as ln(distance) cubic in OAT, to about 5 ft
+   RMS (13 ft max). Altitudes between curves are interpolated linearly.
+2. **Weight.** Seven curved guide lines from the 3050 lb reference line to 2400 lb, fit
+   the same way (about 5 ft RMS). At 2400 lb they come to 60–69% of the starting distance.
+3. **Wind → ground roll.** Seven straight headwind lines to 30 kt (about 78% at 30 kt) and
+   seven dashed tailwind lines to 10 kt (about +22%).
+4. **Obstacle height → total over 50 ft.** Eight straight lines; the total is 1.58–1.87
+   times the ground roll, the multiple growing with ground roll. Per the chart's note, the
+   lines aren't valid for obstacle heights between 0 and 50 ft, so only those two are
+   given.
+
+The source image resolves about 9 ft of distance per pixel. The chart's grid is light grey
+and its curves are dark, so a dark threshold isolates the curves directly. Every number is
+labeled **estimated**. Liftoff and 50 ft speeds come from the chart's table (68/74 knots at
+3050 lb down to 62/68 at 2400 lb), interpolated by weight.
+
+**The chart's own worked example doesn't reproduce exactly.** For 15°C, 5,650 ft, 3,050 lb,
+9.5 kt headwind, the POH prints a 2,000 ft ground roll and 3,150 ft over 50 ft. The app
+gives 2,031 ft and 3,299 ft (1.5% and 4.7% longer). Two things in how the example is drawn
+account for it:
+
+- Its arrow leaves the altitude curves at about 2,160 ft. Exact interpolation between the
+  4,000 ft curve (1,922 ft) and the 6,000 ft curve (2,249 ft) gives 2,191 ft. Starting from
+  the example's own arrow, the app's wind step gives 2,003 ft, matching the printed 2,000.
+- In the obstacle panel its arrow runs nearly parallel to the guide line below it and ends
+  at about 3,150 ft. It starts 62% of the way between the two guide lines either side and
+  ends 44% of the way. Keeping the same proportional place gives about 3,250 ft from a
+  2,000 ft ground roll.
+
+The app keeps the proportional reading, which is the longer, more conservative one. All
+fitted lines were overlaid on the chart and sit on the printed lines. Across about 123,000
+combinations, both distances always increase with altitude, temperature, weight, and
+tailwind, and decrease with headwind.
+
+**Limits.** Each altitude curve is drawn over a limited temperature range: sea level from
+about −18 to 55°C, narrowing to about −35 to 35°C at 10,000 ft. Warmer than a curve's end,
+the app shows no distance and says why. Colder than its start, it uses the curve's coldest
+point, which overstates the distance. The chart covers 2400–3050 lb, up to 30 kt headwind
+or 10 kt tailwind, and sea level–10,000 ft pressure altitude (below sea level uses the
+sea-level curve). Its distance scale runs from 1,000 to 7,000 ft. A ground roll below 1,000
+ft is shown as "under 1,000" with the 50 ft distance as an upper bound; a 50 ft distance
+above 7,000 ft isn't shown.
+
+Always cross-check takeoff performance against N7154N's current POH, the actual runway
+surface and slope, and the aircraft's actual weight, and add your own safety margin.
 
 ### N3008U
 
