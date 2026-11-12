@@ -396,6 +396,9 @@
   .chart-label{font:700 25px -apple-system,"SF Pro Text",system-ui,sans-serif;fill:#c0261f;
     stroke:#fff;stroke-width:7px;paint-order:stroke;stroke-linejoin:round;}
   .chart-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:0 0 .7rem;}
+  /* The N114EL takeoff image is the widest, so its marks are drawn a little heavier to match. */
+  #to-chart .chart-label{font-size:30px;stroke-width:8px;}
+  #to-chart .chart-path{stroke-width:5.5;}
   .chart-hint{display:none;font-size:.76rem;color:var(--ink-dim);}
   @media (max-width:700px){ .chart-hint{display:inline;} }
   .table-scroll table.pairs{min-width:700px;}
@@ -1383,6 +1386,29 @@
     </details>
   </section>
 
+  <section id="to-chart">
+    <p class="section-label">Calculation drawn on the POH chart</p>
+    <div class="chart-actions">
+      <button type="button" class="preset-btn" id="to-load-example">Load the POH example</button>
+      <span class="chart-hint">Swipe the chart sideways to see all of it.</span>
+    </div>
+    <div class="chart-scroll">
+      <div class="chart-wrap">
+        <img src="charts/n114el-takeoff.png" width="1948" height="1413"
+             alt="POH maximum effort takeoff performance chart, flaps 25 degrees, PA-32-301 Figure 5-15">
+        <svg viewBox="0 0 1948 1413" aria-hidden="true">
+          <defs>
+            <marker id="to-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#d0312d"></path>
+            </marker>
+          </defs>
+          <g id="to-chart-overlay"></g>
+        </svg>
+      </div>
+    </div>
+    <p class="table-note" id="to-chart-note"></p>
+  </section>
+
   <section id="to-notes">
     <div class="disclaimer">
       <span>&#9888;&#65039;</span>
@@ -1583,6 +1609,29 @@
       distance rather than extrapolate; below the scale it shows &ldquo;under 1,000&rdquo;. A pressure altitude
       below sea level uses the sea&#8209;level line, which slightly overstates the distance.</p>
     </details>
+  </section>
+
+  <section id="ld-chart">
+    <p class="section-label">Calculation drawn on the POH chart</p>
+    <div class="chart-actions">
+      <button type="button" class="preset-btn" id="ld-load-example">Load the POH example</button>
+      <span class="chart-hint">Swipe the chart sideways to see all of it.</span>
+    </div>
+    <div class="chart-scroll">
+      <div class="chart-wrap">
+        <img src="charts/n114el-landing.png" width="1570" height="1070"
+             alt="POH landing performance chart, standard wheels, tires and brakes, PA-32-301 Figure 5-43">
+        <svg viewBox="0 0 1570 1070" aria-hidden="true">
+          <defs>
+            <marker id="ld-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#d0312d"></path>
+            </marker>
+          </defs>
+          <g id="ld-chart-overlay"></g>
+        </svg>
+      </div>
+    </div>
+    <p class="table-note" id="ld-chart-note"></p>
   </section>
 
   <section id="ld-notes">
@@ -3520,6 +3569,93 @@
     toEls['to-table-body'].innerHTML = rows;
     toEls['to-table-note'].textContent = '3-blade propeller. Speeds in KIAS.' +
       (r.offChart && !/weight|wind/.test(r.offChart) ? ' — = outside the chart.' : '');
+    toDrawChart(c, r);
+  }
+
+
+  // ---- Calculations drawn on POH charts ----
+  // Each chart image is a POH chart (turned upright where needed), cropped
+  // and sometimes scaled. A chart spec maps the scan's own pixels -- the ones
+  // the chart was digitized in -- into the image: yOfDist(x, d) is the height
+  // of distance d at x, and each axis value has an xOfY(y) giving its x at
+  // height y (the scans are tilted slightly, so both vary a little).
+  function chartPt(spec, xOfY, d){
+    var y = spec.yOfDist(spec.xRef, d), x = 0;
+    for(var i=0; i<3; i++){ x = xOfY(y); y = spec.yOfDist(x, d); }
+    return [(x - spec.ox)*spec.scale, (y - spec.oy)*spec.scale];
+  }
+  function chartPoly(pts){ return pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+  function chartLine(pts, cls, arrowId){
+    return '<polyline class="' + cls + '" points="' + chartPoly(pts) + '"' + (arrowId ? ' marker-end="url(#' + arrowId + ')"' : '') + '></polyline>';
+  }
+  function chartText(p, txt, anchor, dy){
+    return '<text class="chart-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + (dy||0)).toFixed(1) + '" text-anchor="' + (anchor||'start') + '">' + txt + '</text>';
+  }
+  function chartDot(p){ return '<circle class="chart-dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="6"></circle>'; }
+  function chartFixed(x){ return function(){ return x; }; }
+
+  // N114EL takeoff chart: the 600 dpi scan, cropped before the 2-blade scale
+  // (N114EL has the 3-blade propeller) and scaled to 45%. Distance runs from
+  // 0 at the bottom border to 7,000 ft at the top; the vertical axes have no
+  // measurable tilt.
+  var TO_CHART = {ox:1150, oy:650, scale:0.45, xRef:3000, yOfDist:function(x, d){
+    var yb = 3539.5 + 0.00507*(x-1450), yt = 956.0 + 0.00397*(x-1450);
+    return yb - d/7000*(yb - yt);
+  }};
+  function toXOat(t){ return chartFixed(1429.5 + (t+40)*(2910.0-1429.5)/80); }
+  function toXWt(w){ return chartFixed(3281.0 + (3600-w)/200*187.6); }
+  function toXWind(k){ return chartFixed(4591.0 + Math.abs(k)*(5157.5-4591.0)/15); }
+  var TO_X_SCALE = 5157.5;
+
+  function toDrawChart(c, r){
+    var g = document.getElementById('to-chart-overlay');
+    var note = document.getElementById('to-chart-note');
+    if(r.offChart){
+      g.innerHTML = '';
+      note.textContent = 'These conditions are outside the chart (' + r.offChart + '), so there’s no path to draw.';
+      return;
+    }
+    function P(xOfY, d){ return chartPt(TO_CHART, xOfY, d); }
+    var out = '', pa = Math.round(clamp(c.pa, 0, 10000));
+    // The curve this pressure altitude interpolates to, up to where the chart's curves stop.
+    var curve = [];
+    for(var t = -40; t <= 40; t += 1){
+      var d = toStep1(c.pa, t);
+      if(d > TO_STEP1_MAX) break;
+      curve.push(P(toXOat(t), d));
+    }
+    if(curve.length > 1){
+      out += chartLine(curve, 'chart-guide');
+      out += chartText(curve[curve.length-1], pa.toLocaleString() + ' ft', 'start', -10);
+    }
+    // Step 1: up from the OAT to that curve, across to the 3,600 lb reference line.
+    var a0 = P(toXOat(c.oat), 0), a1 = P(toXOat(c.oat), r.step1);
+    out += chartLine([a0, a1], 'chart-path', 'to-arrow');
+    out += chartText(a0, fmt(c.oat,0) + '°C', 'middle', -14);
+    var b0 = P(toXWt(3600), r.step1), b1 = P(toXWt(c.weight), r.step2);
+    out += chartLine([a1, b0], 'chart-path', 'to-arrow');
+    // Step 2: along the weight guide lines to the gross weight.
+    out += chartLine([b0, b1], 'chart-path');
+    out += chartLine([P(toXWt(c.weight), 0), b1], 'chart-mark');
+    out += chartText(P(toXWt(c.weight), 0), c.weight.toLocaleString() + ' lb', 'middle', -14);
+    // Step 3: across to the zero-wind line, along the wind lines, out to the distance scale.
+    var k0 = P(toXWind(0), r.step2), k1 = P(toXWind(c.wind), r.step3);
+    out += chartLine([b1, k0], 'chart-path', 'to-arrow');
+    out += chartLine([k0, k1], 'chart-path');
+    if(c.wind){
+      out += chartLine([P(toXWind(c.wind), 0), k1], 'chart-mark');
+      out += chartText(P(toXWind(c.wind), 0), Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'head' : 'tail'), 'middle', -14);
+    }
+    var e = P(chartFixed(TO_X_SCALE), r.step3);
+    out += chartLine([k1, [e[0] + 22, e[1]]], 'chart-path', 'to-arrow');
+    out += chartDot(e);
+    out += chartText([e[0] - 10, e[1]], toFmtFt(r.distance) + ' ft', 'end', -14);
+    g.innerHTML = out;
+    note.textContent = 'Red: this calculation, read the way the chart is used — up from the OAT to the curve for ' +
+      pa.toLocaleString() + ' ft pressure altitude (dashed, interpolated between the printed curves), across to the ' +
+      'reference line, along the weight guide lines and the wind lines, and out to the 3-blade distance scale. Black ' +
+      'arrows are the POH’s own worked example.' +
+      (r.belowSL ? ' Pressure altitude is below sea level, so the sea-level curve is used.' : '');
   }
 
   toPopulateElev();
@@ -3527,6 +3663,17 @@
   toAltimeterDial = setupDial('to-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, toRecompute);
   toWeightDial = setupDial('to-weight', {min:2600,max:3600,step:20,decimals:0,tickStep:100,value:3600}, toRecompute);
   toWindDial = setupDial('to-wind', {min:-5,max:15,step:1,decimals:0,tickStep:5,value:0,alertRange:[-5,-0.5]}, toRecompute);
+  // The POH's worked example: 1,200 ft pressure altitude, 16 C, 3,480 lb, 10 kt headwind.
+  document.getElementById('to-load-example').addEventListener('click', function(){
+    var sel = document.getElementById('to-in-elev');
+    sel.value = '1200';
+    document.getElementById('to-elev-display').textContent = (1200).toLocaleString();
+    toAltimeterDial.set(29.92, true);
+    toOatDial.set(16, true);
+    toWeightDial.set(3480, true);
+    toWindDial.set(10, true);
+    toRecompute();
+  });
   toRecompute();
 
   // ============================================================
@@ -3683,6 +3830,80 @@
     });
     ldEls['ld-table-body'].innerHTML = rows;
     ldEls['ld-table-note'].textContent = 'Approach speed in KIAS.' + (anyDash ? ' — = outside the chart.' : '');
+    ldDrawChart(c, r);
+  }
+
+
+  // N114EL landing chart: the scan as given (no scaling), cropped. Distance
+  // runs from 1,000 ft at the bottom border; the 1,940 ft mark is 47 grid
+  // cells up. The approach-speed scale runs across the top of the weight
+  // panel at y = 531.
+  var LD_CHART = {ox:440, oy:240, scale:1, xRef:1250, yOfDist:function(x, d){
+    var yb = 1241.7 + 0.00771*(x-1250), y47 = 621.3 + 0.00674*(x-1250);
+    return yb - (d-1000)/940*(yb - y47);
+  }};
+  function ldAxis(x600, s){ return function(y){ return x600 + s*(y-600); }; }
+  var ldOatM40 = ldAxis(577.2, -0.0068), ldOat40 = ldAxis(1109.1, -0.00267);
+  var ldWt3600 = ldAxis(1243.5, -0.00272), ldWt2600 = ldAxis(1576.4, -0.00208);
+  var ldWind0 = ldAxis(1710.4, -0.00134), ldWind15 = ldAxis(1908.5, 0.00022);
+  var LD_Y_APPROACH = 531;
+  function ldXOat(t){ return function(y){ return ldOatM40(y) + (t+40)/80*(ldOat40(y) - ldOatM40(y)); }; }
+  function ldXWt(w){ return function(y){ return ldWt3600(y) + (3600-w)/1000*(ldWt2600(y) - ldWt3600(y)); }; }
+  function ldXWind(k){ return function(y){ return ldWind0(y) + Math.abs(k)/15*(ldWind15(y) - ldWind0(y)); }; }
+
+  function ldDrawChart(c, r){
+    var g = document.getElementById('ld-chart-overlay');
+    var note = document.getElementById('ld-chart-note');
+    if(r.offChart){
+      g.innerHTML = '';
+      note.textContent = 'These conditions are outside the chart (' + r.offChart + '), so there’s no path to draw.';
+      return;
+    }
+    function P(xOfY, d){ return chartPt(LD_CHART, xOfY, d); }
+    var out = '', pa = Math.round(clamp(c.pa, 0, 10000));
+    // The line this pressure altitude interpolates to, up to the top of the chart.
+    var line = [];
+    for(var t = -40; t <= 40; t += 1){
+      var d = ldStep1(c.pa, t);
+      if(d > LD_TOP) break;
+      line.push(P(ldXOat(t), d));
+    }
+    if(line.length > 1){
+      out += chartLine(line, 'chart-guide');
+      out += chartText(line[line.length-1], pa.toLocaleString() + ' ft', 'start', -10);
+    }
+    // Step 1: up from the OAT to that line, across to the 3,600 lb reference line.
+    var a0 = P(ldXOat(c.oat), 1000), a1 = P(ldXOat(c.oat), r.step1);
+    out += chartLine([a0, a1], 'chart-path', 'ld-arrow');
+    out += chartText(a0, fmt(c.oat,0) + '°C', 'middle', -14);
+    var b0 = P(ldXWt(3600), r.step1), b1 = P(ldXWt(c.weight), r.step2);
+    out += chartLine([a1, b0], 'chart-path', 'ld-arrow');
+    // Step 2: along the weight guide lines to the landing weight; the same
+    // vertical meets the approach-speed scale at the top of the panel.
+    out += chartLine([b0, b1], 'chart-path');
+    var wx = ldXWt(c.weight), w0 = P(wx, 1000), wTop = [wx(LD_Y_APPROACH) - LD_CHART.ox, LD_Y_APPROACH - LD_CHART.oy];
+    out += chartLine([w0, wTop], 'chart-mark');
+    out += chartText(w0, c.weight.toLocaleString() + ' lb', 'middle', -14);
+    out += chartText([wTop[0] + 8, wTop[1]], fmt(r.approach,0) + ' KIAS', 'start', 30);
+    // Step 3: across to the zero-wind line, along the wind lines, out to the distance scale.
+    var k0 = P(ldXWind(0), r.step2), k1 = P(ldXWind(c.wind), r.step3);
+    out += chartLine([b1, k0], 'chart-path', 'ld-arrow');
+    out += chartLine([k0, k1], 'chart-path');
+    if(c.wind){
+      out += chartLine([P(ldXWind(c.wind), 1000), k1], 'chart-mark');
+      out += chartText(P(ldXWind(c.wind), 1000), Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'head' : 'tail'), 'middle', -14);
+    }
+    var e = P(ldWind15, r.step3);
+    out += chartLine([k1, [e[0] + 22, e[1]]], 'chart-path', 'ld-arrow');
+    out += chartDot(e);
+    out += chartText([e[0] - 10, e[1]], ldFmtDist(r) + ' ft', 'end', -14);
+    g.innerHTML = out;
+    note.textContent = 'Red: this calculation, read the way the chart is used — up from the OAT to the line for ' +
+      pa.toLocaleString() + ' ft pressure altitude (dashed, interpolated between the printed lines), across to the ' +
+      'reference line, along the weight guide lines (up to the approach-speed scale), the wind lines, and out to the ' +
+      'distance scale. Black dashed arrows are the POH’s own worked example.' +
+      (r.belowScale ? ' The result is below the chart’s 1,000 ft scale, so the path ends below the bottom border.' : '') +
+      (r.belowSL ? ' Pressure altitude is below sea level, so the sea-level line is used.' : '');
   }
 
   ldPopulateElev();
@@ -3690,6 +3911,17 @@
   ldAltimeterDial = setupDial('ld-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, ldRecompute);
   ldWeightDial = setupDial('ld-weight', {min:2600,max:3600,step:20,decimals:0,tickStep:100,value:3600}, ldRecompute);
   ldWindDial = setupDial('ld-wind', {min:-5,max:15,step:1,decimals:0,tickStep:5,value:0,alertRange:[-5,-0.5]}, ldRecompute);
+  // The POH's worked example: 400 ft pressure altitude, 24 C, 3,300 lb, 5 kt headwind.
+  document.getElementById('ld-load-example').addEventListener('click', function(){
+    var sel = document.getElementById('ld-in-elev');
+    sel.value = '400';
+    document.getElementById('ld-elev-display').textContent = (400).toLocaleString();
+    ldAltimeterDial.set(29.92, true);
+    ldOatDial.set(24, true);
+    ldWeightDial.set(3300, true);
+    ldWindDial.set(5, true);
+    ldRecompute();
+  });
   ldRecompute();
 
   // ============================================================
@@ -3930,20 +4162,8 @@
   function n7cXWt(w){ return function(y){ return n7cWt3050(y) + (3050-w)/650*(n7cWt2400(y) - n7cWt3050(y)); }; }
   function n7cXWind(k){ return function(y){ return n7cWind0(y) + Math.abs(k)*N7C_PX_PER_KT; }; }
   function n7cXObs(h){ return function(y){ return n7cObs0(y) + h/50*(n7cObs50(y) - n7cObs0(y)); }; }
-  // Image point for a value on one of the horizontal axes at distance d.
-  function n7cPt(xOfY, d){
-    var y = n7cYofDist(1000, d), x = 0;
-    for(var i=0; i<3; i++){ x = xOfY(y); y = n7cYofDist(x, d); }
-    return [x - N7C_OX, y - N7C_OY];
-  }
-  function n7cPoly(pts){ return pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
-  function n7cLine(pts, cls, arrow){
-    return '<polyline class="' + cls + '" points="' + n7cPoly(pts) + '"' + (arrow ? ' marker-end="url(#n7to-arrow)"' : '') + '></polyline>';
-  }
-  function n7cText(p, txt, anchor, dy){
-    return '<text class="chart-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + (dy||0)).toFixed(1) + '" text-anchor="' + (anchor||'start') + '">' + txt + '</text>';
-  }
-  function n7cDot(p){ return '<circle class="chart-dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="6"></circle>'; }
+  var N7C_SPEC = {ox:N7C_OX, oy:N7C_OY, scale:1, xRef:1000, yOfDist:n7cYofDist};
+  function n7cPt(xOfY, d){ return chartPt(N7C_SPEC, xOfY, d); }
 
   function n7toDrawChart(c, r){
     var g = document.getElementById('n7to-chart-overlay');
@@ -3957,45 +4177,45 @@
     // The curve this pressure altitude interpolates to, over the OAT range the chart covers.
     var curve = [];
     for(var t = r.oatLo; t <= r.oatHi + 1e-9; t += 1){ curve.push(n7cPt(n7cXOat(t), n7toStep1(c.pa, t).d)); }
-    out += n7cLine(curve, 'chart-guide');
-    out += n7cText(curve[curve.length-1], Math.round(clamp(c.pa,0,10000)).toLocaleString() + ' ft', 'start', -10);
+    out += chartLine(curve, 'chart-guide');
+    out += chartText(curve[curve.length-1], Math.round(clamp(c.pa,0,10000)).toLocaleString() + ' ft', 'start', -10);
     // Step 1: up from the OAT axis to that curve, across to the weight reference line.
     var tPlot = Math.max(c.oat, r.oatLo);
     var a0 = n7cPt(n7cXOat(c.oat), 1000), a1 = n7cPt(n7cXOat(tPlot), r.step1);
-    out += n7cLine([a0, [a0[0], a1[1]]], 'chart-path', true);
-    if(tPlot !== c.oat) out += n7cLine([[a0[0], a1[1]], a1], 'chart-path');
-    out += n7cText([a0[0], a0[1]], fmt(c.oat,0) + '°C', 'middle', -14);
+    out += chartLine([a0, [a0[0], a1[1]]], 'chart-path', 'n7to-arrow');
+    if(tPlot !== c.oat) out += chartLine([[a0[0], a1[1]], a1], 'chart-path');
+    out += chartText([a0[0], a0[1]], fmt(c.oat,0) + '°C', 'middle', -14);
     var b0 = n7cPt(n7cXWt(3050), r.step1);
-    out += n7cLine([a1, b0], 'chart-path', true);
+    out += chartLine([a1, b0], 'chart-path', 'n7to-arrow');
     // Step 2: along the interpolated weight curve to the takeoff weight.
     var wpts = [];
     for(var w = 3050; w >= c.weight - 1e-9; w -= 10){ wpts.push(n7cPt(n7cXWt(w), n7toWeightStep(r.step1, w))); }
     var b1 = n7cPt(n7cXWt(c.weight), r.step2);
     wpts.push(b1);
-    out += n7cLine(wpts, 'chart-path');
-    out += n7cLine([n7cPt(n7cXWt(c.weight), 1000), b1], 'chart-mark');
-    out += n7cText(n7cPt(n7cXWt(c.weight), 1000), c.weight.toLocaleString() + ' lb', 'middle', -14);
+    out += chartLine(wpts, 'chart-path');
+    out += chartLine([n7cPt(n7cXWt(c.weight), 1000), b1], 'chart-mark');
+    out += chartText(n7cPt(n7cXWt(c.weight), 1000), c.weight.toLocaleString() + ' lb', 'middle', -14);
     // Step 3: across to the wind reference line, along the wind line to the wind component.
     var k0 = n7cPt(n7cXWind(0), r.step2), k1 = n7cPt(n7cXWind(c.wind), r.roll);
-    out += n7cLine([b1, k0], 'chart-path', true);
-    out += n7cLine([k0, k1], 'chart-path');
+    out += chartLine([b1, k0], 'chart-path', 'n7to-arrow');
+    out += chartLine([k0, k1], 'chart-path');
     if(c.wind){
-      out += n7cLine([n7cPt(n7cXWind(c.wind), 1000), k1], 'chart-mark');
-      out += n7cText(n7cPt(n7cXWind(c.wind), 1000), Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'head' : 'tail'), 'middle', -14);
+      out += chartLine([n7cPt(n7cXWind(c.wind), 1000), k1], 'chart-mark');
+      out += chartText(n7cPt(n7cXWind(c.wind), 1000), Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'head' : 'tail'), 'middle', -14);
     }
     // Step 4: across to the obstacle reference line (ground roll), up the
     // obstacle line to 50 ft (total distance), out to the distance scale.
     var rollD = Math.max(r.roll, N7TO_SCALE_MIN);
     var h0 = n7cPt(n7cXObs(0), rollD);
-    out += n7cLine([k1, h0], 'chart-path', true);
-    out += n7cDot(h0);
-    out += n7cText([h0[0] - 10, h0[1]], n7toFmtRoll(r) + ' ft ground roll', 'end', -14);
+    out += chartLine([k1, h0], 'chart-path', 'n7to-arrow');
+    out += chartDot(h0);
+    out += chartText([h0[0] - 10, h0[1]], n7toFmtRoll(r) + ' ft ground roll', 'end', -14);
     if(!r.totalOff){
       var h1 = n7cPt(n7cXObs(50), r.total);
-      out += n7cLine([h0, h1], 'chart-path');
-      out += n7cLine([h1, [h1[0] + 34, h1[1]]], 'chart-path', true);
-      out += n7cDot(h1);
-      out += n7cText(h1, n7toFmtTotal(r) + ' ft over 50 ft', 'end', -16);
+      out += chartLine([h0, h1], 'chart-path');
+      out += chartLine([h1, [h1[0] + 34, h1[1]]], 'chart-path', 'n7to-arrow');
+      out += chartDot(h1);
+      out += chartText(h1, n7toFmtTotal(r) + ' ft over 50 ft', 'end', -16);
     }
     g.innerHTML = out;
     note.textContent = 'Red: this calculation, read the way the chart is used — up from the OAT to the curve for ' +

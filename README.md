@@ -387,6 +387,14 @@ the sea-level curve, which slightly overstates the distance. Every number is lab
 **estimated**: it's a digitized chart, with the same few-percent tolerance as reading it
 by hand.
 
+**The calculation drawn on the chart.** As on N7154N's takeoff page, the POH chart is at
+the bottom of the page (`charts/n114el-takeoff.png`, cropped before the 2-blade scale and
+reduced to 4 grey levels), with the current calculation drawn over it in red. The path
+goes up from the OAT to the interpolated pressure-altitude curve (dashed), across and
+along the weight and wind guide lines, and out to the 3-blade distance scale. **Load the
+POH example** sets the chart's worked example (1,200 ft, 16°C, 3,480 lb, 10 kt headwind),
+and the red path lands on the chart's own example arrows.
+
 Always cross-check takeoff performance against N114EL's current POH, the actual runway
 surface and slope, and the aircraft's actual weight, and add your own safety margin.
 
@@ -435,6 +443,12 @@ it; the app then shows no distance and says why. The chart's distance scale star
 1,000 ft. A result below that (cold, light, strong headwind) is shown as "under 1,000".
 A pressure altitude below sea level uses the sea-level line, which slightly overstates
 the distance. Every number is labeled **estimated**.
+
+**The calculation drawn on the chart.** The POH chart (`charts/n114el-landing.png`) is at
+the bottom of the page with the current calculation drawn over it in red, the same way.
+The weight vertical continues up to the approach-speed scale across the top of the weight
+panel. **Load the POH example** sets the chart's worked example (400 ft, 24°C, 3,300 lb,
+5 kt headwind), and the red path lies on top of the chart's own dashed example arrows.
 
 Always cross-check landing performance against N114EL's current POH, the actual runway
 surface and slope, and the aircraft's actual weight, and add your own safety margin.
