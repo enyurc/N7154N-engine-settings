@@ -385,6 +385,19 @@
   .table-note{font-size:.76rem;color:var(--ink-dim);margin:.6rem 0 0;}
   .table-note:empty{display:none;}
   table.pairs td, table.pairs th{white-space:nowrap;}
+  .chart-scroll{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+  .chart-wrap{position:relative;background:#fff;min-width:640px;}
+  .chart-wrap img{display:block;width:100%;height:auto;}
+  .chart-wrap svg{position:absolute;inset:0;width:100%;height:100%;}
+  .chart-path{fill:none;stroke:#d0312d;stroke-width:4.5;stroke-linejoin:round;stroke-linecap:round;}
+  .chart-guide{fill:none;stroke:#d0312d;stroke-width:3;stroke-dasharray:12 8;opacity:.8;}
+  .chart-mark{fill:none;stroke:#d0312d;stroke-width:2.5;stroke-dasharray:6 6;}
+  .chart-dot{fill:#d0312d;stroke:#fff;stroke-width:2;}
+  .chart-label{font:700 25px -apple-system,"SF Pro Text",system-ui,sans-serif;fill:#c0261f;
+    stroke:#fff;stroke-width:7px;paint-order:stroke;stroke-linejoin:round;}
+  .chart-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:0 0 .7rem;}
+  .chart-hint{display:none;font-size:.76rem;color:var(--ink-dim);}
+  @media (max-width:700px){ .chart-hint{display:inline;} }
   .table-scroll table.pairs{min-width:700px;}
   .table-scroll{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
   .table-scroll table{min-width:520px;}
@@ -1789,6 +1802,29 @@
       pressure altitude below sea level uses the sea&#8209;level curve). The chart's note applies: its obstacle
       guide lines aren't valid for obstacle heights between 0 and 50&nbsp;ft.</p>
     </details>
+  </section>
+
+  <section id="n7to-chart">
+    <p class="section-label">Calculation drawn on the POH chart</p>
+    <div class="chart-actions">
+      <button type="button" class="preset-btn" id="n7to-load-example">Load the POH example</button>
+      <span class="chart-hint">Swipe the chart sideways to see all of it.</span>
+    </div>
+    <div class="chart-scroll">
+      <div class="chart-wrap">
+        <img src="charts/n7154n-takeoff.jpg" width="1880" height="1115"
+             alt="POH take-off distance chart, Bonanza E33, Section V page 5-18">
+        <svg viewBox="0 0 1880 1115" aria-hidden="true">
+          <defs>
+            <marker id="n7to-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#d0312d"></path>
+            </marker>
+          </defs>
+          <g id="n7to-chart-overlay"></g>
+        </svg>
+      </div>
+    </div>
+    <p class="table-note" id="n7to-chart-note"></p>
   </section>
 
   <section id="n7to-notes">
@@ -3872,13 +3908,121 @@
     });
     n7toEls['n7to-table-body'].innerHTML = rows;
     n7toEls['n7to-table-note'].textContent = 'Speeds in knots.' + (anyDash ? ' — = outside the chart.' : '');
+    n7toDrawChart(c, r);
+  }
+
+
+  // ---- The calculation drawn on the POH chart ----
+  // The image is the chart page turned upright and cropped. These are the
+  // same axis calibrations the chart was digitized with, in its pixels (the
+  // scan is tilted a fraction of a degree, so each axis line is a function
+  // of height), shifted by the crop offset.
+  var N7C_OX = 215, N7C_OY = 150;
+  function n7cY1000(x){ return 1085.9 - 0.00153*(x-300); }
+  function n7cY5000(x){ return 627.1 - 0.00094*(x-300); }
+  function n7cYofDist(x, d){ return n7cY1000(x) - (d-1000)/4000*(n7cY1000(x) - n7cY5000(x)); }
+  function n7cAxis(x1085, s){ return function(y){ return x1085 + s*(y-1085); }; }
+  var n7cOatM40 = n7cAxis(428.2, 0.0021), n7cOat60 = n7cAxis(1001.6, 0.0029);
+  var n7cWt3050 = n7cAxis(1087.8, 0.0037), n7cWt2400 = n7cAxis(1461.9, 0.0032);
+  var n7cWind0 = n7cAxis(1577.8, 0.0047), N7C_PX_PER_KT = 5.74;
+  var n7cObs0 = n7cAxis(1807.4, 0.0044), n7cObs50 = n7cAxis(1979.2, 0.0033);
+  function n7cXOat(t){ return function(y){ return n7cOatM40(y) + (t+40)/100*(n7cOat60(y) - n7cOatM40(y)); }; }
+  function n7cXWt(w){ return function(y){ return n7cWt3050(y) + (3050-w)/650*(n7cWt2400(y) - n7cWt3050(y)); }; }
+  function n7cXWind(k){ return function(y){ return n7cWind0(y) + Math.abs(k)*N7C_PX_PER_KT; }; }
+  function n7cXObs(h){ return function(y){ return n7cObs0(y) + h/50*(n7cObs50(y) - n7cObs0(y)); }; }
+  // Image point for a value on one of the horizontal axes at distance d.
+  function n7cPt(xOfY, d){
+    var y = n7cYofDist(1000, d), x = 0;
+    for(var i=0; i<3; i++){ x = xOfY(y); y = n7cYofDist(x, d); }
+    return [x - N7C_OX, y - N7C_OY];
+  }
+  function n7cPoly(pts){ return pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+  function n7cLine(pts, cls, arrow){
+    return '<polyline class="' + cls + '" points="' + n7cPoly(pts) + '"' + (arrow ? ' marker-end="url(#n7to-arrow)"' : '') + '></polyline>';
+  }
+  function n7cText(p, txt, anchor, dy){
+    return '<text class="chart-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + (dy||0)).toFixed(1) + '" text-anchor="' + (anchor||'start') + '">' + txt + '</text>';
+  }
+  function n7cDot(p){ return '<circle class="chart-dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="6"></circle>'; }
+
+  function n7toDrawChart(c, r){
+    var g = document.getElementById('n7to-chart-overlay');
+    var note = document.getElementById('n7to-chart-note');
+    if(r.offChart){
+      g.innerHTML = '';
+      note.textContent = 'These conditions are outside the chart (' + r.offChart + '), so there’s no path to draw.';
+      return;
+    }
+    var out = '';
+    // The curve this pressure altitude interpolates to, over the OAT range the chart covers.
+    var curve = [];
+    for(var t = r.oatLo; t <= r.oatHi + 1e-9; t += 1){ curve.push(n7cPt(n7cXOat(t), n7toStep1(c.pa, t).d)); }
+    out += n7cLine(curve, 'chart-guide');
+    out += n7cText(curve[curve.length-1], Math.round(clamp(c.pa,0,10000)).toLocaleString() + ' ft', 'start', -10);
+    // Step 1: up from the OAT axis to that curve, across to the weight reference line.
+    var tPlot = Math.max(c.oat, r.oatLo);
+    var a0 = n7cPt(n7cXOat(c.oat), 1000), a1 = n7cPt(n7cXOat(tPlot), r.step1);
+    out += n7cLine([a0, [a0[0], a1[1]]], 'chart-path', true);
+    if(tPlot !== c.oat) out += n7cLine([[a0[0], a1[1]], a1], 'chart-path');
+    out += n7cText([a0[0], a0[1]], fmt(c.oat,0) + '°C', 'middle', -14);
+    var b0 = n7cPt(n7cXWt(3050), r.step1);
+    out += n7cLine([a1, b0], 'chart-path', true);
+    // Step 2: along the interpolated weight curve to the takeoff weight.
+    var wpts = [];
+    for(var w = 3050; w >= c.weight - 1e-9; w -= 10){ wpts.push(n7cPt(n7cXWt(w), n7toWeightStep(r.step1, w))); }
+    var b1 = n7cPt(n7cXWt(c.weight), r.step2);
+    wpts.push(b1);
+    out += n7cLine(wpts, 'chart-path');
+    out += n7cLine([n7cPt(n7cXWt(c.weight), 1000), b1], 'chart-mark');
+    out += n7cText(n7cPt(n7cXWt(c.weight), 1000), c.weight.toLocaleString() + ' lb', 'middle', -14);
+    // Step 3: across to the wind reference line, along the wind line to the wind component.
+    var k0 = n7cPt(n7cXWind(0), r.step2), k1 = n7cPt(n7cXWind(c.wind), r.roll);
+    out += n7cLine([b1, k0], 'chart-path', true);
+    out += n7cLine([k0, k1], 'chart-path');
+    if(c.wind){
+      out += n7cLine([n7cPt(n7cXWind(c.wind), 1000), k1], 'chart-mark');
+      out += n7cText(n7cPt(n7cXWind(c.wind), 1000), Math.abs(c.wind) + ' kt ' + (c.wind > 0 ? 'head' : 'tail'), 'middle', -14);
+    }
+    // Step 4: across to the obstacle reference line (ground roll), up the
+    // obstacle line to 50 ft (total distance), out to the distance scale.
+    var rollD = Math.max(r.roll, N7TO_SCALE_MIN);
+    var h0 = n7cPt(n7cXObs(0), rollD);
+    out += n7cLine([k1, h0], 'chart-path', true);
+    out += n7cDot(h0);
+    out += n7cText([h0[0] - 10, h0[1]], n7toFmtRoll(r) + ' ft ground roll', 'end', -14);
+    if(!r.totalOff){
+      var h1 = n7cPt(n7cXObs(50), r.total);
+      out += n7cLine([h0, h1], 'chart-path');
+      out += n7cLine([h1, [h1[0] + 34, h1[1]]], 'chart-path', true);
+      out += n7cDot(h1);
+      out += n7cText(h1, n7toFmtTotal(r) + ' ft over 50 ft', 'end', -16);
+    }
+    g.innerHTML = out;
+    note.textContent = 'Red: this calculation, read the way the chart is used — up from the OAT to the curve for ' +
+      Math.round(clamp(c.pa,0,10000)).toLocaleString() + ' ft pressure altitude (dashed, interpolated between the printed curves), across to ' +
+      'the reference line, along the weight guide lines, the wind lines, and the obstacle lines. Black dashed ' +
+      'arrows are the POH’s own worked example.' +
+      (r.cold ? ' It’s colder than this curve covers, so the path starts from the curve’s cold end.' : '') +
+      (r.totalOff ? ' The 50 ft distance is above the chart’s 7,000 ft scale, so the path stops at ground roll.' : '');
   }
 
   n7toPopulateElev();
   n7toOatDial = setupDial('n7to-oat', {min:-40,max:60,step:1,decimals:0,tickStep:10,value:15}, n7toRecompute);
   n7toAltimeterDial = setupDial('n7to-altimeter', {min:28,max:31,step:0.01,decimals:2,tickStep:0.5,value:29.92}, n7toRecompute);
   n7toWeightDial = setupDial('n7to-weight', {min:2400,max:3050,step:10,decimals:0,tickStep:50,value:3050}, n7toRecompute);
-  n7toWindDial = setupDial('n7to-wind', {min:-10,max:30,step:1,decimals:0,tickStep:5,value:0,alertRange:[-10,-0.5]}, n7toRecompute);
+  n7toWindDial = setupDial('n7to-wind', {min:-10,max:30,step:1,decimals:0,offGridDecimals:1,tickStep:5,value:0,alertRange:[-10,-0.5]}, n7toRecompute);
+  // The POH's worked example: 15 C, 5,650 ft pressure altitude (5,600 ft at
+  // 29.87 inHg), 3,050 lb, 9.5 kt headwind.
+  document.getElementById('n7to-load-example').addEventListener('click', function(){
+    var sel = document.getElementById('n7to-in-elev');
+    sel.value = '5600';
+    document.getElementById('n7to-elev-display').textContent = (5600).toLocaleString();
+    n7toAltimeterDial.set(29.87, true);
+    n7toOatDial.set(15, true);
+    n7toWeightDial.set(3050, true);
+    n7toWindDial.setExact(9.5, true);
+    n7toRecompute();
+  });
   n7toRecompute();
 
   // ---- Aircraft tab switching ----

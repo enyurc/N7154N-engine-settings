@@ -1,8 +1,9 @@
-const CACHE = "n7154n-power-v33";
+const CACHE = "n7154n-power-v34";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./charts/n7154n-takeoff.jpg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/apple-touch-icon.png"

@@ -196,6 +196,24 @@ sea-level curve). Its distance scale runs from 1,000 to 7,000 ft. A ground roll 
 ft is shown as "under 1,000" with the 50 ft distance as an upper bound; a 50 ft distance
 above 7,000 ft isn't shown.
 
+**The calculation drawn on the chart.** At the bottom of the page is the POH chart itself
+(`charts/n7154n-takeoff.jpg`, the page turned upright, cached for offline use). The current
+calculation is drawn over it in red, redrawn whenever a dial changes:
+
+- up from the OAT to the curve for the current pressure altitude, shown dashed and
+  interpolated between the printed curves;
+- across to the reference line and along the weight guide lines to the takeoff weight;
+- across to the wind reference line and along the wind lines to the wind component;
+- across to the obstacle reference line (ground roll), up the obstacle line to 50 ft, and
+  out to the distance scale.
+
+The overlay is drawn with the same axis calibrations used to digitize the chart, including
+the scan's slight tilt. At a printed pressure altitude, such as 8,000 ft, the dashed curve
+lies on the printed one, and each segment runs parallel to its neighbouring guide lines. A
+**Load the POH example** button sets the example's conditions (15°C, 5,650 ft, 3,050 lb,
+9.5 kt headwind), so the red path can be compared with the chart's own dashed example
+arrows. When conditions are outside the chart, nothing is drawn and the caption says why.
+
 Always cross-check takeoff performance against N7154N's current POH, the actual runway
 surface and slope, and the aircraft's actual weight, and add your own safety margin.
 
